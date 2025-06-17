@@ -333,3 +333,19 @@ export const friendshipAPI = {
     return data
   },
 }
+
+export const organizationAPI = {
+  createOrganization: async (name: string) => {
+    const response = await apiRequest('/organization', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create organization')
+    }
+    
+    return data
+  }
+}

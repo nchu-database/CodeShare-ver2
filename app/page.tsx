@@ -50,7 +50,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
-import { friendshipAPI } from "@/lib/auth"
+import { friendshipAPI, organizationAPI } from "@/lib/auth"
 
 interface Friend {
   id: number
@@ -1241,9 +1241,15 @@ export default function Dashboard() {
     },
   ])
 
-  const handleCreateOrganization = () => {
-    console.log("Creating organization:", { name: newOrgName })
-    setNewOrgName("")
+  const handleCreateOrganization = async () => {
+    try {
+      const response = await organizationAPI.createOrganization(newOrgName)
+      console.log("Organization created:", response.organization)
+    } catch (error: any) {
+      console.error("Failed to create organization:", error.message)
+    } finally {
+      setNewOrgName("")
+    }
   }
 
   const handleInviteToOrganization = () => {
