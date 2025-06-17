@@ -51,7 +51,7 @@ export default function ResetPasswordPage() {
     setError("")
 
     try {
-      const response = await fetch('http://10.10.30.246:8000/api/validate-reset-token', {
+      const response = await fetch('http://localhost:8000/api/validate-reset-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
     setError("")
 
     try {
-      const response = await fetch('http://10.10.30.246:8000/api/reset-password', {
+      const response = await fetch('http://localhost:8000/api/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

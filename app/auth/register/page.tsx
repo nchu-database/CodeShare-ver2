@@ -69,7 +69,7 @@ export default function RegisterPage() {
     setError("")
 
     try {
-      const response = await fetch('http://10.10.30.246:8000/api/register', {
+      const response = await fetch('http://localhost:8000/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

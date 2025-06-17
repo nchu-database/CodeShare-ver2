@@ -1,6 +1,6 @@
 // Auth utility functions for API calls and token management
 
-const API_BASE_URL = 'http://10.10.30.246:8000/api'
+const API_BASE_URL = 'http://localhost:8000/api'
 
 // Get auth token from localStorage
 export const getAuthToken = (): string | null => {
