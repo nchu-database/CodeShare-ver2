@@ -1268,10 +1268,21 @@ export default function Dashboard() {
     try {
       const response = await organizationAPI.createOrganization(newOrgName)
       console.log("Organization created:", response.organization)
+      setCurrentUserOrganization(response.organization)
     } catch (error: any) {
       console.error("Failed to create organization:", error.message)
     } finally {
       setNewOrgName("")
+    }
+  }
+
+  const handleLeaveOrganization = async () => {
+    try {
+      const response = await organizationAPI.leaveOrganization()
+      console.log("Left organization:", response.message)
+      setCurrentUserOrganization(null)
+    } catch (error: any) {
+      console.error("Failed to leave organization:", error.message)
     }
   }
 
@@ -1385,7 +1396,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 space-y-2">
+                {/* <CardContent className="pt-0 space-y-2">
                   <div className="flex justify-between items-center">
                     <Dialog>
                       <DialogTrigger asChild>
@@ -1427,7 +1438,7 @@ export default function Dashboard() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                </CardContent>
+                </CardContent> */}
               </Card>
 
               {/* Current Organization */}
@@ -1445,51 +1456,49 @@ export default function Dashboard() {
                         <p className="text-sm font-medium">#{currentUserOrganization.id} - {currentUserOrganization.name}</p>
                         <p className="text-xs text-gray-500">Established&nbsp;on&nbsp;{dayjs(currentUserOrganization.created_at).format('YYYY-MM-DD')}</p>
                       </div>
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button onClick={handleLeaveOrganization} variant="outline" size="sm" className="w-full">
                         Leave
+                      </Button>
+                      <Button variant="outline" size="sm" className="w-full" onClick={handleInviteToOrganization}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Invite
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <p className="text-sm text-gray-500 text-center py-2">You don't belong to any organization</p>
                       <div className="space-y-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-full">
-                              <Building2 className="h-4 w-4 mr-2" />
-                              Create Organization
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Create New Organization</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="org-name">Organization Name</Label>
-                                <Input
-                                  id="org-name"
-                                  value={newOrgName}
-                                  onChange={(e) => setNewOrgName(e.target.value)}
-                                  placeholder="Enter organization name"
-                                />
-                              </div>
-                              <Button onClick={handleCreateOrganization} className="w-full">
-                                Create Organization
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" className="flex-1" onClick={handleInviteToOrganization}>
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Invite
-                          </Button>
-
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="icon">
+                              <Button variant="outline" size="sm" className="w-full">
+                                <Building2 className="h-4 w-4 mr-2" />
+                                Create
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Create New Organization</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  {/* <Label htmlFor="org-name">Organization Name</Label> */}
+                                  <Input
+                                    id="org-name"
+                                    value={newOrgName}
+                                    onChange={(e) => setNewOrgName(e.target.value)}
+                                    placeholder="Enter organization name"
+                                  />
+                                </div>
+                                <Button onClick={handleCreateOrganization} className="w-full">
+                                  Create Organization
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="">
                                 <Inbox className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
