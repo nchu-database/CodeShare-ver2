@@ -277,33 +277,6 @@ export default function RegisterPage() {
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => handleSocialLogin("GitHub")} disabled={isLoading}>
-              <Github className="h-4 w-4 mr-2" />
-              GitHub
-            </Button>
-            <Button variant="outline" onClick={() => handleSocialLogin("Google")} disabled={isLoading}>
-              <Mail className="h-4 w-4 mr-2" />
-              Google
-            </Button>
-          </div>
-
-          <div className="text-center text-sm">
-            <span className="text-gray-500">Already have an account? </span>
-            <Link href="/auth/login" className="text-blue-600 hover:text-blue-500 font-medium">
-              Sign in
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>
