@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Users,
@@ -44,8 +45,31 @@ import {
   AlertCircle,
   Loader2,
   LogOut,
+  Search,
+  UserMinus,
+  CheckCircle,
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
+import { friendshipAPI } from "@/lib/auth"
+
+interface Friend {
+  id: number
+  name: string
+  email: string
+  friendship_created_at?: string
+}
+
+interface SearchUser {
+  id: number
+  name: string
+  email: string
+  is_friend?: boolean
+}
+
+interface FriendshipStats {
+  total_friends: number
+  recent_friends: Friend[]
+}
 // Remove this line: import { UserMenu } from "@/components/user-menu"
 
 const getPermissionBadge = (permission: string) => {
@@ -714,6 +738,193 @@ const RepositoryCard = ({
   )
 }
 
+const FriendsModalContent = ({
+  friends,
+  friendsLoading,
+  friendsError,
+  friendsSuccess,
+  actionLoading,
+  searchQuery,
+  searchResults,
+  searchLoading,
+  hasSearched,
+  onDeleteFriend,
+  onSearchQueryChange,
+  onSearchSubmit,
+  onAddFriend
+}: {
+  friends: Friend[]
+  friendsLoading: boolean
+  friendsError: string
+  friendsSuccess: string
+  actionLoading: boolean
+  searchQuery: string
+  searchResults: SearchUser[]
+  searchLoading: boolean
+  hasSearched: boolean
+  onDeleteFriend: (id: number) => void
+  onSearchQueryChange: (query: string) => void
+  onSearchSubmit: (e: React.FormEvent) => void
+  onAddFriend: (userId: number) => void
+}) => {
+  return (
+    <DialogContent className="max-w-2xl max-h-[70vh] overflow-hidden flex flex-col">
+      <DialogHeader>
+        <DialogTitle>Find Friends</DialogTitle>
+        <DialogDescription>Search for users to add as friends</DialogDescription>
+      </DialogHeader>
+      
+      <div className="flex-1 overflow-hidden">
+        <FindFriendsTab 
+          searchQuery={searchQuery}
+          searchResults={searchResults}
+          searchLoading={searchLoading}
+          hasSearched={hasSearched}
+          friendsError={friendsError}
+          friendsSuccess={friendsSuccess}
+          actionLoading={actionLoading}
+          onSearchQueryChange={onSearchQueryChange}
+          onSearchSubmit={onSearchSubmit}
+          onAddFriend={onAddFriend}
+        />
+      </div>
+    </DialogContent>
+  )
+}
+
+const FindFriendsTab = ({
+  searchQuery,
+  searchResults,
+  searchLoading,
+  hasSearched,
+  friendsError,
+  friendsSuccess,
+  actionLoading,
+  onSearchQueryChange,
+  onSearchSubmit,
+  onAddFriend
+}: {
+  searchQuery: string
+  searchResults: SearchUser[]
+  searchLoading: boolean
+  hasSearched: boolean
+  friendsError: string
+  friendsSuccess: string
+  actionLoading: boolean
+  onSearchQueryChange: (query: string) => void
+  onSearchSubmit: (e: React.FormEvent) => void
+  onAddFriend: (userId: number) => void
+}) => {
+  return (
+    <div className="space-y-4">
+      {friendsError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{friendsError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {friendsSuccess && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{friendsSuccess}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="search" className="block text-sm font-medium mb-2">
+            Search Users
+          </label>
+          <div className="flex space-x-3 px-1">
+            <Input
+              id="search"
+              placeholder="Enter name or email..."
+              value={searchQuery}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
+              className="flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <Button 
+              type="button"
+              onClick={(e) => onSearchSubmit(e)}
+              disabled={searchLoading || !searchQuery.trim()}
+              className="shrink-0"
+            >
+              {searchLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 max-h-96 overflow-y-auto">
+        {searchResults.map((user) => (
+          <Card key={user.id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarFallback>
+                      {user.name.split(" ").map((n: string) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {user.is_friend ? (
+                    <Badge variant="secondary">Already Friends</Badge>
+                  ) : (
+                    <Button
+                      onClick={() => onAddFriend(user.id)}
+                      disabled={actionLoading}
+                      size="sm"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      Add Friend
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {hasSearched && searchResults.length === 0 && !searchLoading && (
+          <div className="text-center py-8 text-gray-500">
+            <Search className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <p>No users found</p>
+            <p className="text-sm">Try a different search term</p>
+          </div>
+        )}
+
+        {!hasSearched && (
+          <div className="text-center py-8 text-gray-500">
+            <Search className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <p>Start typing to search for users</p>
+            <p className="text-sm">Click the Search button to find users</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Sample data
 const sampleFriends = [
   { id: 23456, name: "Alice Smith", email: "alice@example.com", created_at: "2024-01-10T00:00:00Z" },
@@ -735,10 +946,114 @@ export default function Dashboard() {
   const [newOrgName, setNewOrgName] = useState("")
   const [showInviteError, setShowInviteError] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
-  const [friends, setFriends] = useState(sampleFriends)
+  const [friends, setFriends] = useState<Friend[]>([])
+  
+  // Friends functionality state
+  const [friendsModalOpen, setFriendsModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchUser[]>([])
+  const [hasSearched, setHasSearched] = useState(false)
+  const [friendsLoading, setFriendsLoading] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [friendsError, setFriendsError] = useState("")
+  const [friendsSuccess, setFriendsSuccess] = useState("")
 
-  const handleDeleteFriend = (friendId: number) => {
-    setFriends((prev) => prev.filter((friend) => friend.id !== friendId))
+  // Friends functionality
+  const loadFriends = async () => {
+    setFriendsLoading(true)
+    setFriendsError("")
+    try {
+      const response = await friendshipAPI.getFriends()
+      if (response.friends) {
+        setFriends(response.friends)
+      }
+    } catch (error: any) {
+      setFriendsError(error.message || "Failed to load friends list")
+    } finally {
+      setFriendsLoading(false)
+    }
+  }
+
+  const searchUsers = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      setHasSearched(false)
+      return
+    }
+
+    setSearchLoading(true)
+    setFriendsError("")
+    setHasSearched(true)
+    try {
+      const response = await friendshipAPI.searchUsers(searchQuery.trim(), 20)
+      if (response.users) {
+        setSearchResults(response.users)
+      }
+    } catch (error: any) {
+      setFriendsError(error.message || "Failed to search users")
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      searchUsers()
+    }
+  }
+
+  const addFriend = async (userId: number) => {
+    setActionLoading(true)
+    setFriendsError("")
+    setFriendsSuccess("")
+
+    try {
+      const response = await friendshipAPI.addFriend(userId)
+      if (response.message) {
+        setFriendsSuccess(response.message || "Friend added successfully!")
+        loadFriends()
+        // 重新搜尋以更新 is_friend 狀態
+        if (searchQuery.trim()) {
+          searchUsers()
+        }
+      }
+    } catch (error: any) {
+      setFriendsError(error.message || "Failed to add friend")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDeleteFriend = async (friendId: number) => {
+    setActionLoading(true)
+    setFriendsError("")
+    setFriendsSuccess("")
+
+    try {
+      const response = await friendshipAPI.removeFriend(friendId)
+      if (response.message) {
+        setFriendsSuccess(response.message || "Friend removed successfully!")
+        loadFriends()
+        // 重新搜尋以更新 is_friend 狀態
+        if (searchQuery.trim()) {
+          searchUsers()
+        }
+      }
+    } catch (error: any) {
+      setFriendsError(error.message || "Failed to remove friend")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const clearFriendsMessages = () => {
+    setFriendsError("")
+    setFriendsSuccess("")
+    setSearchResults([])
+    setHasSearched(false)
   }
 
   useEffect(() => {
@@ -754,6 +1069,9 @@ export default function Dashboard() {
           owner: repo.owner?.id === 12345 ? user : repo.owner,
         })),
       )
+      
+      // Load friends when component mounts
+      loadFriends()
     }
   }, [])
 
@@ -994,17 +1312,23 @@ export default function Dashboard() {
         <header className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             <h1 className="text-xl font-bold text-gray-900">DevHub</h1>
-            <Button
-              variant="outline"
-              onClick={() => {
-                localStorage.removeItem("authToken")
-                localStorage.removeItem("user")
-                window.location.href = "/auth/login"
-              }}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Log out
-            </Button>
+            <div className="flex items-center space-x-4">
+              {/* Current User Info */}
+              <div className="text-sm text-gray-600">
+                Welcome, {currentUser.name}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  localStorage.removeItem("authToken")
+                  localStorage.removeItem("user")
+                  window.location.href = "/auth/login"
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log out
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -1020,7 +1344,7 @@ export default function Dashboard() {
                       <AvatarFallback>
                         {currentUser.name
                           .split(" ")
-                          .map((n) => n[0])
+                          .map((n: string) => n[0])
                           .join("")}
                       </AvatarFallback>
                     </Avatar>
@@ -1036,60 +1360,12 @@ export default function Dashboard() {
                   <div className="flex justify-between items-center">
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="flex-1 mr-2">
+                        <Button className="flex-1">
                           <Plus className="h-4 w-4 mr-2" />
                           New Repository
                         </Button>
                       </DialogTrigger>
                       <NewRepositoryDialog onSave={handleCreateRepository} />
-                    </Dialog>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="icon">
-                          <UserPlus className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Friends</DialogTitle>
-                          <DialogDescription>Search for users by their ID</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="friend-id">User ID</Label>
-                            <Input id="friend-id" placeholder="Enter user ID (e.g., 12345)" type="number" />
-                          </div>
-                          <Button className="w-full">Search User</Button>
-                          <div className="space-y-2">
-                            {friends.slice(0, 2).map((friend) => (
-                              <div
-                                key={friend.id}
-                                className="flex items-center justify-between p-2 border rounded mb-1"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarFallback className="text-xs">
-                                      {friend.name
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm">{friend.name}</span>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteFriend(friend.id)}
-                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </DialogContent>
                     </Dialog>
                   </div>
 
@@ -1231,9 +1507,41 @@ export default function Dashboard() {
               {/* Friends */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    Friends ({friends.length})
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      Friends ({friends.length})
+                    </div>
+                    <Dialog open={friendsModalOpen} onOpenChange={setFriendsModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            setFriendsModalOpen(true)
+                            clearFriendsMessages()
+                          }}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </DialogTrigger>
+                      <FriendsModalContent 
+                        friends={friends}
+                        friendsLoading={friendsLoading}
+                        friendsError={friendsError}
+                        friendsSuccess={friendsSuccess}
+                        actionLoading={actionLoading}
+                        searchQuery={searchQuery}
+                        searchResults={searchResults}
+                        searchLoading={searchLoading}
+                        hasSearched={hasSearched}
+                        onDeleteFriend={handleDeleteFriend}
+                        onSearchQueryChange={setSearchQuery}
+                        onSearchSubmit={handleSearchSubmit}
+                        onAddFriend={addFriend}
+                      />
+                    </Dialog>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -1260,6 +1568,19 @@ export default function Dashboard() {
                       </Button>
                     </div>
                   ))}
+                  
+                  {friends.length > 3 && (
+                    <div className="text-center py-2">
+                      <p className="text-xs text-gray-500">{friends.length - 3} more friends</p>
+                    </div>
+                  )}
+                  
+                  {friends.length === 0 && (
+                    <div className="text-center py-2">
+                      <p className="text-xs text-gray-500">No friends yet</p>
+                      <p className="text-xs text-gray-400 mt-1">Click + to search for friends</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </aside>

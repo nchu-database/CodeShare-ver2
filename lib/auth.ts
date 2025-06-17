@@ -249,3 +249,87 @@ export const authAPI = {
     return response.json()
   },
 }
+
+// Friendship API functions
+export const friendshipAPI = {
+  // Get friends list
+  getFriends: async () => {
+    console.log('🔄 API Call: Getting friends list')
+    const response = await apiRequest('/friendships')
+    const data = await response.json()
+    console.log('📊 API Response - Get Friends:', { status: response.status, data })
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get friends list')
+    }
+    
+    return data
+  },
+
+  // Add friend
+  addFriend: async (friend_id: number) => {
+    const response = await apiRequest('/friendships', {
+      method: 'POST',
+      body: JSON.stringify({ friend_id }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add friend')
+    }
+    
+    return data
+  },
+
+  // Remove friend
+  removeFriend: async (friendId: number) => {
+    const response = await apiRequest(`/friendships/${friendId}`, {
+      method: 'DELETE',
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to remove friend')
+    }
+    
+    return data
+  },
+
+  // Check friendship status
+  checkFriendship: async (userId: number) => {
+    const response = await apiRequest(`/friendships/check/${userId}`)
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to check friendship status')
+    }
+    
+    return data
+  },
+
+  // Search users
+  searchUsers: async (query: string, limit: number = 10) => {
+    console.log('🔍 API Call: Searching users', { query, limit })
+    const response = await apiRequest(`/friendships/search?query=${encodeURIComponent(query)}&limit=${limit}`)
+    const data = await response.json()
+    console.log('📊 API Response - Search Users:', { status: response.status, data })
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to search users')
+    }
+    
+    return data
+  },
+
+  // Get friendship statistics
+  getStatistics: async () => {
+    const response = await apiRequest('/friendships/statistics')
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get statistics')
+    }
+    
+    return data
+  },
+}
