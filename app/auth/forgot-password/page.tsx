@@ -29,12 +29,36 @@ export default function ForgotPasswordPage() {
     setError("")
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const response = await fetch('http://10.10.30.246:8000/api/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email
+        })
+      })
 
-      setSuccess("Password reset instructions have been sent to your email address.")
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess("Password reset instructions have been sent to your email address.")
+      } else {
+        // Handle API error response
+        if (data.message) {
+          setError(data.message)
+        } else if (data.errors) {
+          // Handle validation errors
+          const errorMessages = Object.values(data.errors).flat()
+          setError(errorMessages.join(', '))
+        } else {
+          setError("Failed to send reset email. Please try again.")
+        }
+      }
     } catch (err) {
-      setError("An error occurred. Please try again.")
+      console.error('Forgot password error:', err)
+      setError("Network error. Please try again later.")
     } finally {
       setIsLoading(false)
     }

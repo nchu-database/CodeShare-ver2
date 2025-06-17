@@ -5,28 +5,43 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
+import { isAuthenticated, authAPI, removeAuthToken } from "@/lib/auth"
 
 interface AuthGuardProps {
   children: React.ReactNode
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [isAuth, setIsAuth] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("authToken")
-      const user = localStorage.getItem("user")
-
-      if (token && user) {
-        setIsAuthenticated(true)
-      } else {
-        setIsAuthenticated(false)
-        // Redirect to login
+    const checkAuth = async () => {
+      if (!isAuthenticated()) {
+        setIsAuth(false)
         window.location.href = "/auth/login"
+        setIsLoading(false)
+        return
       }
-      setIsLoading(false)
+
+      try {
+        // Verify token with server
+        const response = await authAPI.checkAuth()
+        if (response.authenticated) {
+          setIsAuth(true)
+        } else {
+          removeAuthToken()
+          setIsAuth(false)
+          window.location.href = "/auth/login"
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        removeAuthToken()
+        setIsAuth(false)
+        window.location.href = "/auth/login"
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     checkAuth()
@@ -47,7 +62,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  if (!isAuthenticated) {
+  if (!isAuth) {
     return null // Will redirect to login
   }
 

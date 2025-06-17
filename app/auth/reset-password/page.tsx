@@ -2,43 +2,90 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, Github, Mail, AlertCircle, CheckCircle } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
-export default function RegisterPage() {
+export default function ResetPasswordPage() {
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
-    name: "",
+    token: "",
     email: "",
     password: "",
     confirmPassword: "",
-    agreeToTerms: false,
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isValidating, setIsValidating] = useState(false)
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  useEffect(() => {
+    // Get token and email from URL parameters
+    const token = searchParams.get('token')
+    const email = searchParams.get('email')
+    
+    if (token) {
+      setFormData(prev => ({ ...prev, token }))
+    }
+    if (email) {
+      setFormData(prev => ({ ...prev, email }))
+    }
+
+    // Validate token if both token and email are available
+    if (token && email) {
+      validateResetToken(token, email)
+    }
+  }, [searchParams])
+
+  const validateResetToken = async (token: string, email: string) => {
+    setIsValidating(true)
+    setError("")
+
+    try {
+      const response = await fetch('http://10.10.30.246:8000/api/validate-reset-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ token, email })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.valid) {
+        setTokenValid(true)
+      } else {
+        setTokenValid(false)
+        setError(data.message || "Invalid or expired reset token")
+      }
+    } catch (err) {
+      console.error('Token validation error:', err)
+      setTokenValid(false)
+      setError("Failed to validate reset token")
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }))
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
     setError("")
   }
 
   const validateForm = () => {
-    if (!formData.name.trim()) {
-      setError("Name is required")
+    if (!formData.token.trim()) {
+      setError("Reset token is required")
       return false
     }
     if (!formData.email.trim()) {
@@ -53,10 +100,6 @@ export default function RegisterPage() {
       setError("Passwords do not match")
       return false
     }
-    if (!formData.agreeToTerms) {
-      setError("You must agree to the terms and conditions")
-      return false
-    }
     return true
   }
 
@@ -69,14 +112,14 @@ export default function RegisterPage() {
     setError("")
 
     try {
-      const response = await fetch('http://10.10.30.246:8000/api/register', {
+      const response = await fetch('http://10.10.30.246:8000/api/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name,
+          token: formData.token,
           email: formData.email,
           password: formData.password,
           password_confirmation: formData.confirmPassword
@@ -86,21 +129,10 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess("Account created successfully! Redirecting to login...")
-        
-        // If API returns token immediately (auto-login), store it
-        if (data.token) {
-          localStorage.setItem("authToken", data.token)
-          localStorage.setItem("user", JSON.stringify(data.user))
-          setTimeout(() => {
-            window.location.href = "/"
-          }, 1000)
-        } else {
-          // Otherwise redirect to login
-          setTimeout(() => {
-            window.location.href = "/auth/login"
-          }, 2000)
-        }
+        setSuccess("Password reset successfully! Redirecting to login...")
+        setTimeout(() => {
+          window.location.href = "/auth/login"
+        }, 2000)
       } else {
         // Handle API error response
         if (data.message) {
@@ -110,46 +142,53 @@ export default function RegisterPage() {
           const errorMessages = Object.values(data.errors).flat()
           setError(errorMessages.join(', '))
         } else {
-          setError("Registration failed. Please try again.")
+          setError("Password reset failed. Please try again.")
         }
       }
     } catch (err) {
-      console.error('Registration error:', err)
+      console.error('Reset password error:', err)
       setError("Network error. Please try again later.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    setIsLoading(true)
-    // Simulate social login
-    setTimeout(() => {
-      setSuccess(`${provider} registration successful! Redirecting...`)
-      localStorage.setItem("authToken", "mock-jwt-token")
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: Math.floor(Math.random() * 100000),
-          name: formData.name || "New User",
-          email: formData.email || "user@example.com",
-          organization_id: null,
-        }),
-      )
-      setTimeout(() => {
-        window.location.href = "/"
-      }, 1000)
-    }, 1500)
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Join DevHub and start managing your code snippets</CardDescription>
+          <CardTitle className="text-2xl font-bold">Reset your password</CardTitle>
+          <CardDescription>Enter your new password</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Token validation status */}
+          {isValidating && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Validating reset token...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {tokenValid === true && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Reset token is valid. You can proceed to reset your password.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {tokenValid === false && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                The reset token is invalid or has expired. Please request a new password reset.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -164,21 +203,9 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                disabled={isLoading}
-              />
-            </div>
-
+          {/* Only show form if token is valid or still validating */}
+          {(tokenValid === true || isValidating || tokenValid === null) && (
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -194,13 +221,27 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="token">Reset Token</Label>
+              <Input
+                id="token"
+                name="token"
+                type="text"
+                placeholder="Enter reset token"
+                value={formData.token}
+                onChange={handleInputChange}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
+                  placeholder="Enter your new password"
                   value={formData.password}
                   onChange={handleInputChange}
                   required
@@ -224,13 +265,13 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
+                  placeholder="Confirm your new password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required
@@ -253,55 +294,24 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="agreeToTerms"
-                name="agreeToTerms"
-                checked={formData.agreeToTerms}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, agreeToTerms: checked as boolean }))}
-                disabled={isLoading}
-              />
-              <Label htmlFor="agreeToTerms" className="text-sm">
-                I agree to the{" "}
-                <Link href="/terms" className="text-blue-600 hover:text-blue-500">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="text-blue-600 hover:text-blue-500">
-                  Privacy Policy
-                </Link>
-              </Label>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
+            <Button type="submit" className="w-full" disabled={isLoading || tokenValid === false}>
+              {isLoading ? "Resetting password..." : "Reset password"}
             </Button>
           </form>
+          )}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
+          {/* Show link to request new token if current token is invalid */}
+          {tokenValid === false && (
+            <div className="text-center text-sm">
+              <Link href="/auth/forgot-password" className="text-blue-600 hover:text-blue-500 font-medium">
+                Request new password reset
+              </Link>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => handleSocialLogin("GitHub")} disabled={isLoading}>
-              <Github className="h-4 w-4 mr-2" />
-              GitHub
-            </Button>
-            <Button variant="outline" onClick={() => handleSocialLogin("Google")} disabled={isLoading}>
-              <Mail className="h-4 w-4 mr-2" />
-              Google
-            </Button>
-          </div>
+          )}
 
           <div className="text-center text-sm">
-            <span className="text-gray-500">Already have an account? </span>
             <Link href="/auth/login" className="text-blue-600 hover:text-blue-500 font-medium">
-              Sign in
+              Back to login
             </Link>
           </div>
         </CardContent>

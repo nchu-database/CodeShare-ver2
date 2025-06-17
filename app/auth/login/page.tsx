@@ -33,32 +33,44 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch('http://10.10.30.246:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      })
 
-      // Mock validation
-      if (formData.email === "demo@example.com" && formData.password === "password123") {
+      const data = await response.json()
+
+      if (response.ok && data.token) {
         setSuccess("Login successful! Redirecting...")
-        // Store auth token in localStorage (in real app, use secure httpOnly cookies)
-        localStorage.setItem("authToken", "mock-jwt-token")
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            id: 12345,
-            name: "John Doe",
-            email: "demo@example.com",
-            organization_id: null,
-          }),
-        )
+        // Store auth token in localStorage
+        localStorage.setItem("authToken", data.token)
+        localStorage.setItem("user", JSON.stringify(data.user))
 
         setTimeout(() => {
           window.location.href = "/"
         }, 1000)
       } else {
-        setError("Invalid email or password. Try demo@example.com / password123")
+        // Handle API error response
+        if (data.message) {
+          setError(data.message)
+        } else if (data.errors) {
+          // Handle validation errors
+          const errorMessages = Object.values(data.errors).flat()
+          setError(errorMessages.join(', '))
+        } else {
+          setError("Login failed. Please check your credentials.")
+        }
       }
     } catch (err) {
-      setError("An error occurred during login. Please try again.")
+      console.error('Login error:', err)
+      setError("Network error. Please try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -69,7 +81,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Sign in to your DevHub account</CardDescription>
+          <CardDescription>Sign in to your CodeShare account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -149,11 +161,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <div className="mt-6 p-3 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-800 font-medium mb-1">Demo Credentials:</p>
-            <p className="text-xs text-blue-700">Email: demo@example.com</p>
-            <p className="text-xs text-blue-700">Password: password123</p>
-          </div>
+          {/* Remove demo credentials section since we're using real API */}
         </CardContent>
       </Card>
     </div>

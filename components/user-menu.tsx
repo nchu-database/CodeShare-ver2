@@ -13,6 +13,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Settings, LogOut, Shield } from "lucide-react"
 import { LucideUser } from "lucide-react"
+import Link from "next/link"
+import { getUser, authAPI } from "@/lib/auth"
 
 interface User {
   id: number
@@ -23,18 +25,24 @@ interface User {
 
 export function UserMenu() {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
+    const userData = getUser()
     if (userData) {
-      setUser(JSON.parse(userData))
+      setUser(userData)
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken")
-    localStorage.removeItem("user")
-    window.location.href = "/auth/login"
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await authAPI.logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      window.location.href = "/auth/login"
+    }
   }
 
   if (!user) return null
@@ -63,22 +71,28 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <LucideUser className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+        <DropdownMenuItem asChild>
+          <Link href="/profile" className="flex items-center">
+            <LucideUser className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings" className="flex items-center">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Shield className="mr-2 h-4 w-4" />
-          <span>Security</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings?tab=security" className="flex items-center">
+            <Shield className="mr-2 h-4 w-4" />
+            <span>Security</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
