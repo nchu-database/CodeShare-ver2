@@ -735,6 +735,11 @@ export default function Dashboard() {
   const [newOrgName, setNewOrgName] = useState("")
   const [showInviteError, setShowInviteError] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [friends, setFriends] = useState(sampleFriends)
+
+  const handleDeleteFriend = (friendId: number) => {
+    setFriends((prev) => prev.filter((friend) => friend.id !== friendId))
+  }
 
   useEffect(() => {
     const userData = localStorage.getItem("user")
@@ -1056,23 +1061,30 @@ export default function Dashboard() {
                           </div>
                           <Button className="w-full">Search User</Button>
                           <div className="space-y-2">
-                            {sampleFriends.slice(0, 2).map((friend) => (
-                              <div key={friend.id} className="flex items-center justify-between p-2 border rounded">
+                            {friends.slice(0, 2).map((friend) => (
+                              <div
+                                key={friend.id}
+                                className="flex items-center justify-between p-2 border rounded mb-1"
+                              >
                                 <div className="flex items-center space-x-2">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback>
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarFallback className="text-xs">
                                       {friend.name
                                         .split(" ")
                                         .map((n) => n[0])
                                         .join("")}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div>
-                                    <p className="text-sm font-medium">{friend.name}</p>
-                                    <p className="text-xs text-gray-500">ID: {friend.id}</p>
-                                  </div>
+                                  <span className="text-sm">{friend.name}</span>
                                 </div>
-                                <Button size="sm">Add</Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteFriend(friend.id)}
+                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -1221,21 +1233,31 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center">
                     <Users className="h-4 w-4 mr-2" />
-                    Friends ({sampleFriends.length})
+                    Friends ({friends.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {sampleFriends.slice(0, 3).map((friend) => (
-                    <div key={friend.id} className="flex items-center space-x-2 p-1">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">
-                          {friend.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{friend.name}</span>
+                  {friends.slice(0, 3).map((friend) => (
+                    <div key={friend.id} className="flex items-center justify-between p-2 border rounded mb-1">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">
+                            {friend.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{friend.name}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteFriend(friend.id)}
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </CardContent>

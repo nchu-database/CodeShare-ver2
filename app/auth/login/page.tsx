@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Github, Mail, AlertCircle, CheckCircle } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -63,27 +62,6 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleSocialLogin = (provider: string) => {
-    setIsLoading(true)
-    // Simulate social login
-    setTimeout(() => {
-      setSuccess(`${provider} login successful! Redirecting...`)
-      localStorage.setItem("authToken", "mock-jwt-token")
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: 12345,
-          name: "John Doe",
-          email: "john.doe@example.com",
-          organization_id: null,
-        }),
-      )
-      setTimeout(() => {
-        window.location.href = "/"
-      }, 1000)
-    }, 1500)
   }
 
   return (
@@ -163,26 +141,6 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => handleSocialLogin("GitHub")} disabled={isLoading}>
-              <Github className="h-4 w-4 mr-2" />
-              GitHub
-            </Button>
-            <Button variant="outline" onClick={() => handleSocialLogin("Google")} disabled={isLoading}>
-              <Mail className="h-4 w-4 mr-2" />
-              Google
-            </Button>
-          </div>
 
           <div className="text-center text-sm">
             <span className="text-gray-500">Don't have an account? </span>
