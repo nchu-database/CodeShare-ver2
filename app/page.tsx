@@ -51,12 +51,22 @@ import {
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
 import { friendshipAPI, organizationAPI } from "@/lib/auth"
+import { set } from "date-fns"
+import dayjs from 'dayjs';
 
 interface Friend {
   id: number
   name: string
   email: string
   friendship_created_at?: string
+}
+
+interface Organization {
+  id: number,
+  name: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at?: string,
 }
 
 interface SearchUser {
@@ -947,6 +957,7 @@ export default function Dashboard() {
   const [showInviteError, setShowInviteError] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [friends, setFriends] = useState<Friend[]>([])
+  const [currentUserOrganization, setCurrentUserOrganization] = useState<Organization | null>(null)
   
   // Friends functionality state
   const [friendsModalOpen, setFriendsModalOpen] = useState(false)
@@ -972,6 +983,17 @@ export default function Dashboard() {
       setFriendsError(error.message || "Failed to load friends list")
     } finally {
       setFriendsLoading(false)
+    }
+  }
+
+  const loadOrganization = async () => {
+    try {
+      const response = await organizationAPI.getOrganization()
+      if (response.organization) {
+        setCurrentUserOrganization(response.organization)
+      }
+    } catch (error: any) {
+      setCurrentUserOrganization(null)
     }
   }
 
@@ -1060,8 +1082,8 @@ export default function Dashboard() {
     const userData = localStorage.getItem("user")
     if (userData) {
       const user = JSON.parse(userData)
+      console.log("Current user data loaded:", user)
       setCurrentUser(user)
-
       // Update repositories with current user data
       setRepositoriesOwnedByMe((prev) =>
         prev.map((repo) => ({
@@ -1072,6 +1094,7 @@ export default function Dashboard() {
       
       // Load friends when component mounts
       loadFriends()
+      loadOrganization()
     }
   }, [])
 
@@ -1416,14 +1439,14 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {currentUser.organization_id ? (
+                  {currentUserOrganization ? (
                     <div className="space-y-2">
                       <div className="p-2 bg-blue-50 rounded">
-                        <p className="text-sm font-medium">TechCorp</p>
-                        <p className="text-xs text-gray-500">Member since Jan 2024</p>
+                        <p className="text-sm font-medium">#{currentUserOrganization.id} - {currentUserOrganization.name}</p>
+                        <p className="text-xs text-gray-500">Established&nbsp;on&nbsp;{dayjs(currentUserOrganization.created_at).format('YYYY-MM-DD')}</p>
                       </div>
                       <Button variant="outline" size="sm" className="w-full">
-                        Opt Out
+                        Leave
                       </Button>
                     </div>
                   ) : (

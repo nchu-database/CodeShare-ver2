@@ -347,5 +347,15 @@ export const organizationAPI = {
     }
     
     return data
+  },
+  getOrganization: async () => {
+    const response = await apiRequest('/organization', {
+      method: 'GET'
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get organization')
+    }
+    return data
   }
 }
