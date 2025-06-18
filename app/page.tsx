@@ -50,7 +50,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
-import { friendshipAPI, invitationAPI, organizationAPI, repositoryAPI } from "@/lib/auth"
+import { friendshipAPI, invitationAPI, organizationAPI, repositoryAPI, snippetAPI } from "@/lib/auth"
 import { set } from "date-fns"
 import dayjs from 'dayjs';
 
@@ -166,24 +166,51 @@ const canEdit = (permission: string) => {
   return permission === "owner" || permission === "write"
 }
 
+// Helper function to get language name by ID
+const getLanguageName = (languageId: number, languages: any[]) => {
+  if (!languageId || !languages || languages.length === 0) {
+    return "Unknown"
+  }
+  const language = languages.find(lang => lang && lang.id === languageId)
+  return language ? language.name : "Unknown"
+}
+
+// Helper function to get language ID by name
+const getLanguageId = (languageName: string, languages: any[]) => {
+  if (!languageName || !languages || languages.length === 0) {
+    return 1 // Default to first language
+  }
+  const language = languages.find(lang => lang && lang.name === languageName)
+  return language ? language.id : (languages[0] ? languages[0].id : 1)
+}
+
 const SnippetEditor = ({
   snippet,
   onSave,
   onCancel,
-}: { snippet: any; onSave: (snippet: any) => void; onCancel: () => void }) => {
-  const [title, setTitle] = useState(snippet.title)
-  const [description, setDescription] = useState(snippet.description)
-  const [content, setContent] = useState(snippet.content)
-  const [language, setLanguage] = useState(snippet.language)
+  languages,
+}: { snippet: any; onSave: (snippet: any) => void; onCancel: () => void; languages: any[] }) => {
+  const [title, setTitle] = useState(snippet.title || "")
+  const [description, setDescription] = useState(snippet.description || "")
+  const [content, setContent] = useState(snippet.content || "")
+  const [language, setLanguage] = useState(getLanguageName(snippet.language_id, languages) || (languages.length > 0 ? languages[0].name : "JavaScript"))
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSave = () => {
-    onSave({
-      ...snippet,
-      title,
-      description,
-      content,
-      language,
-    })
+  const handleSave = async () => {
+    setIsLoading(true)
+    try {
+      await onSave({
+        ...snippet,
+        title,
+        description,
+        content,
+        language,
+      })
+    } catch (error) {
+      console.error("Error updating snippet:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -191,11 +218,20 @@ const SnippetEditor = ({
       <div className="flex items-center justify-between">
         <h5 className="font-medium text-sm text-blue-800">Editing Snippet</h5>
         <div className="flex space-x-2">
-          <Button size="sm" onClick={handleSave}>
-            <Save className="h-3 w-3 mr-1" />
-            Save
+          <Button size="sm" onClick={handleSave} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              <>
+                <Save className="h-3 w-3 mr-1" />
+                Save
+              </>
+            )}
           </Button>
-          <Button size="sm" variant="outline" onClick={onCancel}>
+          <Button size="sm" variant="outline" onClick={onCancel} disabled={isLoading}>
             <X className="h-3 w-3 mr-1" />
             Cancel
           </Button>
@@ -217,13 +253,11 @@ const SnippetEditor = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="JavaScript">JavaScript</SelectItem>
-              <SelectItem value="TypeScript">TypeScript</SelectItem>
-              <SelectItem value="Python">Python</SelectItem>
-              <SelectItem value="Java">Java</SelectItem>
-              <SelectItem value="Go">Go</SelectItem>
-              <SelectItem value="Swift">Swift</SelectItem>
-              <SelectItem value="React">React</SelectItem>
+              {languages.map((lang) => (
+                <SelectItem key={lang.id} value={lang.name}>
+                  {lang.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -254,31 +288,35 @@ const SnippetEditor = ({
   )
 }
 
-const NewSnippetForm = ({ onSave, onCancel }: { onSave: (snippet: any) => void; onCancel: () => void }) => {
+const NewSnippetForm = ({ onSave, onCancel, languages }: { onSave: (snippet: any) => void; onCancel: () => void; languages: any[] }) => {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [content, setContent] = useState("")
-  const [language, setLanguage] = useState("JavaScript")
+  const [language, setLanguage] = useState(languages.length > 0 ? languages[0].name : "JavaScript")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim() || !content.trim()) return
 
-    onSave({
-      id: Date.now(), // Simple ID generation for demo
-      title,
-      description,
-      content,
-      language,
-      view_count: 0,
-      expires_at: null,
-      created_at: new Date().toISOString(),
-    })
+    setIsLoading(true)
+    try {
+      await onSave({
+        title,
+        description,
+        content,
+        language,
+      })
 
-    // Reset form
-    setTitle("")
-    setDescription("")
-    setContent("")
-    setLanguage("JavaScript")
+      // Reset form
+      setTitle("")
+      setDescription("")
+      setContent("")
+      setLanguage(languages.length > 0 ? languages[0].name : "JavaScript")
+    } catch (error) {
+      console.error("Error saving snippet:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -286,11 +324,20 @@ const NewSnippetForm = ({ onSave, onCancel }: { onSave: (snippet: any) => void; 
       <div className="flex items-center justify-between">
         <h5 className="font-medium text-sm text-green-800">New Snippet</h5>
         <div className="flex space-x-2">
-          <Button size="sm" onClick={handleSave} disabled={!title.trim() || !content.trim()}>
-            <Save className="h-3 w-3 mr-1" />
-            Save
+          <Button size="sm" onClick={handleSave} disabled={!title.trim() || !content.trim() || isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Save className="h-3 w-3 mr-1" />
+                Save
+              </>
+            )}
           </Button>
-          <Button size="sm" variant="outline" onClick={onCancel}>
+          <Button size="sm" variant="outline" onClick={onCancel} disabled={isLoading}>
             <X className="h-3 w-3 mr-1" />
             Cancel
           </Button>
@@ -318,13 +365,11 @@ const NewSnippetForm = ({ onSave, onCancel }: { onSave: (snippet: any) => void; 
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="JavaScript">JavaScript</SelectItem>
-              <SelectItem value="TypeScript">TypeScript</SelectItem>
-              <SelectItem value="Python">Python</SelectItem>
-              <SelectItem value="Java">Java</SelectItem>
-              <SelectItem value="Go">Go</SelectItem>
-              <SelectItem value="Swift">Swift</SelectItem>
-              <SelectItem value="React">React</SelectItem>
+              {languages.map((lang) => (
+                <SelectItem key={lang.id} value={lang.name}>
+                  {lang.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -667,18 +712,25 @@ const RepositoryCard = ({
   onDeleteRepository,
   currentUser,
   onReloadRepositories,
+  languages,
 }: { 
   repository: Repository; 
   onUpdateRepository: (repo: Repository) => void; 
   onDeleteRepository: (repoId: number) => void;
   currentUser: any;
-  onReloadRepositories?: () => void;
+  onReloadRepositories: () => void;
+  languages: any[];
 }) => {
   const [showSnippets, setShowSnippets] = useState(false)
   const [editingSnippet, setEditingSnippet] = useState<number | null>(null)
   const [addingSnippet, setAddingSnippet] = useState(false)
-  const [snippets, setSnippets] = useState(repository.snippets)
+  const [snippets, setSnippets] = useState(repository.snippets || [])
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+
+  // 同步 repository.snippets 的變化
+  useEffect(() => {
+    setSnippets(repository.snippets || [])
+  }, [repository.snippets])
 
   // 判斷當前用戶是否為擁有者
   const isOwner = currentUser && repository.user_id === currentUser.id
@@ -698,24 +750,98 @@ const RepositoryCard = ({
   const permissionType = getPermissionType()
   const userCanEdit = permissionType === "owner" || permissionType === "write"
 
-  const handleSaveSnippet = (updatedSnippet: any) => {
-    const updatedSnippets = snippets.map((s: any) => (s.id === updatedSnippet.id ? updatedSnippet : s))
-    setSnippets(updatedSnippets)
-    onUpdateRepository({ ...repository, snippets: updatedSnippets })
-    setEditingSnippet(null)
+  const handleSaveSnippet = async (updatedSnippet: any) => {
+    try {
+      // 找到對應的語言ID
+      const language_id = getLanguageId(updatedSnippet.language, languages)
+
+      // 調用API更新snippet
+      const result = await snippetAPI.updateSnippet(
+        updatedSnippet.id,
+        updatedSnippet.title,
+        updatedSnippet.description,
+        updatedSnippet.content,
+        language_id
+      )
+
+      // 立即更新本地 snippets 狀態以提供即時反饋
+      const currentSnippets = Array.isArray(snippets) ? snippets : []
+      const updatedSnippets = currentSnippets.map((s: any) => (s && s.id === updatedSnippet.id ? result.snippet : s))
+      setSnippets(updatedSnippets)
+      
+      // 更新 repository 物件並通知父組件
+      const updatedRepository = { ...repository, snippets: updatedSnippets }
+      onUpdateRepository(updatedRepository)
+      
+      setEditingSnippet(null)
+      
+      // 重新加載所有 repositories 以確保資料同步
+      onReloadRepositories()
+    } catch (error: any) {
+      console.error("Failed to update snippet:", error)
+      // TODO: 顯示錯誤消息給用戶
+      alert("Failed to update snippet: " + error.message)
+    }
   }
 
-  const handleAddSnippet = (newSnippet: any) => {
-    const updatedSnippets = [...snippets, newSnippet]
-    setSnippets(updatedSnippets)
-    onUpdateRepository({ ...repository, snippets: updatedSnippets })
-    setAddingSnippet(false)
+  const handleAddSnippet = async (newSnippet: any) => {
+    try {
+      // 找到對應的語言ID
+      const language_id = getLanguageId(newSnippet.language, languages)
+
+      // 調用API創建snippet
+      const createdSnippet = await snippetAPI.createSnippet(
+        repository.id,
+        newSnippet.title,
+        newSnippet.description,
+        newSnippet.content,
+        language_id
+      )
+
+      // 立即更新本地 snippets 狀態以提供即時反饋
+      const currentSnippets = Array.isArray(snippets) ? snippets : []
+      const updatedSnippets = [...currentSnippets, createdSnippet.snippet]
+      setSnippets(updatedSnippets)
+      
+      // 更新 repository 物件並通知父組件
+      const updatedRepository = { ...repository, snippets: updatedSnippets }
+      onUpdateRepository(updatedRepository)
+      
+      setAddingSnippet(false)
+      
+      // 重新加載所有 repositories 以確保資料同步
+      onReloadRepositories()
+    } catch (error: any) {
+      console.error("Failed to create snippet:", error)
+      // TODO: 顯示錯誤消息給用戶
+      alert("Failed to create snippet: " + error.message)
+    }
   }
 
-  const handleDeleteSnippet = (snippetId: number) => {
-    const updatedSnippets = snippets.filter((s: any) => s.id !== snippetId)
-    setSnippets(updatedSnippets)
-    onUpdateRepository({ ...repository, snippets: updatedSnippets })
+  const handleDeleteSnippet = async (snippetId: number) => {
+    if (!confirm("Are you sure you want to delete this snippet?")) {
+      return
+    }
+
+    try {
+      // 調用API刪除snippet
+      await snippetAPI.deleteSnippet(snippetId)
+
+      // 立即更新本地 snippets 狀態以提供即時反饋
+      const updatedSnippets = snippets.filter((s: any) => s.id !== snippetId)
+      setSnippets(updatedSnippets)
+      
+      // 更新 repository 物件並通知父組件
+      const updatedRepository = { ...repository, snippets: updatedSnippets }
+      onUpdateRepository(updatedRepository)
+      
+      // 重新加載所有 repositories 以確保資料同步
+      onReloadRepositories()
+    } catch (error: any) {
+      console.error("Failed to delete snippet:", error)
+      // TODO: 顯示錯誤消息給用戶
+      alert("Failed to delete snippet: " + error.message)
+    }
   }
 
   const handleSaveSettings = async (settings: any) => {
@@ -757,6 +883,7 @@ const RepositoryCard = ({
       console.log("Deleting repository:", repository.id)
       await repositoryAPI.destroyRepository(repository.id)
       onDeleteRepository(repository.id)
+      onReloadRepositories()
       console.log("Repository deleted successfully")
     } catch (error: any) {
       console.error("Failed to delete repository:", error)
@@ -878,15 +1005,16 @@ const RepositoryCard = ({
                 )}
               </div>
 
-              {addingSnippet && <NewSnippetForm onSave={handleAddSnippet} onCancel={() => setAddingSnippet(false)} />}
+              {addingSnippet && <NewSnippetForm onSave={handleAddSnippet} onCancel={() => setAddingSnippet(false)} languages={languages} />}
 
-              {snippets.map((snippet: any) => (
+              {snippets && snippets.filter(snippet => snippet && snippet.id).map((snippet: any) => (
                 <div key={snippet.id}>
                   {editingSnippet === snippet.id ? (
                     <SnippetEditor
                       snippet={snippet}
                       onSave={handleSaveSnippet}
                       onCancel={() => setEditingSnippet(null)}
+                      languages={languages}
                     />
                   ) : (
                     <div className="bg-gray-50 p-3 rounded-lg space-y-2">
@@ -914,7 +1042,7 @@ const RepositoryCard = ({
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span className="flex items-center">
                           <div className="w-2 h-2 bg-blue-400 rounded-full mr-1"></div>
-                          {snippet.language}
+                          {getLanguageName(snippet.language_id || snippet.language || 1, languages)}
                         </span>
                         <span>{formatDate(snippet.created_at)}</span>
                       </div>
@@ -1335,6 +1463,7 @@ export default function Dashboard() {
   const [friends, setFriends] = useState<Friend[]>([])
   const [currentUserOrganization, setCurrentUserOrganization] = useState<Organization | null>(null)
   const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [languages, setLanguages] = useState<any[]>([])
   
   // Friends functionality state
   const [friendsModalOpen, setFriendsModalOpen] = useState(false)
@@ -1577,6 +1706,18 @@ export default function Dashboard() {
     setHasInvitationSearched(false)
   }
 
+  const loadLanguages = async () => {
+    try {
+      const response = await snippetAPI.getLanguages()
+      console.log("Languages loaded:", response)
+      if (response && Array.isArray(response)) {
+        setLanguages(response)
+      }
+    } catch (error: any) {
+      console.error("Failed to load languages:", error.message)
+    }
+  }
+
   useEffect(() => {
     const userData = localStorage.getItem("user")
     if (userData) {
@@ -1592,6 +1733,7 @@ export default function Dashboard() {
       loadFriends()
       loadOrganization()
       loadInvitation()
+      loadLanguages()
     }
   }, [])
 
@@ -1675,11 +1817,19 @@ export default function Dashboard() {
   }
 
   const reloadAllRepositories = async () => {
-    await Promise.all([
-      loadRepository(),
-      loadRepositoryFromFriend(),
-      loadRepositoryFromOrganization()
-    ])
+    try {
+      console.log("Reloading all repositories...")
+      await Promise.all([
+        loadRepository(),
+        loadRepositoryFromFriend(),
+        loadRepositoryFromOrganization()
+      ])
+      console.log("All repositories reloaded successfully")
+    } catch (error) {
+      console.error("Error during repository reload:", error)
+      // Even if some repos fail to load, others might have succeeded
+      // Individual load functions handle their own error cases
+    }
   }
 
   const handleDeleteRepository = (repoId: number, section: string) => {
@@ -1996,6 +2146,7 @@ export default function Dashboard() {
                       onUpdateRepository={(updatedRepo) => updateRepositoryInSection(updatedRepo, "me")}
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "me")}
                       onReloadRepositories={reloadAllRepositories}
+                      languages={languages}
                     />
                   ))}
                 </div>
@@ -2018,6 +2169,7 @@ export default function Dashboard() {
                       onUpdateRepository={(updatedRepo) => updateRepositoryInSection(updatedRepo, "friends")}
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "friends")}
                       onReloadRepositories={reloadAllRepositories}
+                      languages={languages}
                     />
                   ))}
                 </div>
@@ -2040,6 +2192,7 @@ export default function Dashboard() {
                       onUpdateRepository={(updatedRepo) => updateRepositoryInSection(updatedRepo, "organization")}
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "organization")}
                       onReloadRepositories={reloadAllRepositories}
+                      languages={languages}
                     />
                   ))}
                 </div>

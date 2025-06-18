@@ -515,3 +515,57 @@ export const repositoryAPI = {
     return data
   },
 }
+
+export const snippetAPI = {
+  getLanguages: async () => {
+    const response = await apiRequest('/snippet/languages', {
+      method: 'GET'
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get languages')
+    }
+    
+    return data
+  },
+  createSnippet: async (repository_id: number, title: string, description: string, content: string, language_id: number) => {
+    const response = await apiRequest('/snippet/create', {
+      method: 'POST',
+      body: JSON.stringify({ repository_id, title, description, content, language_id }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create snippet')
+    }
+    
+    return data
+  },
+  updateSnippet: async (snippet_id: number, title: string, description: string, content: string, language_id: number) => {
+    const response = await apiRequest('/snippet/update', {
+      method: 'POST',
+      body: JSON.stringify({ snippet_id, title, description, content, language_id }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update snippet')
+    }
+    
+    return data
+  },
+  deleteSnippet: async (snippet_id: number) => {
+    const response = await apiRequest('/snippet/delete', {
+      method: 'DELETE',
+      body: JSON.stringify({ snippet_id }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete snippet')
+    }
+    
+    return data
+  }
+}
