@@ -50,7 +50,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
-import { friendshipAPI, invitationAPI, organizationAPI } from "@/lib/auth"
+import { friendshipAPI, invitationAPI, organizationAPI, repositoryAPI } from "@/lib/auth"
 import { set } from "date-fns"
 import dayjs from 'dayjs';
 
@@ -88,6 +88,55 @@ interface InvitationSearchUser {
   name: string
   email: string
   is_invited?: boolean
+}
+
+interface Snippet {
+  id: number
+  user_id: number
+  repository_id: number
+  language_id: number
+  title: string
+  description: string
+  content: string
+  view_count: number
+  expires_at: string | null
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+}
+
+interface Permission {
+  repository_id: number
+  permission_type_id: number
+  writable: number
+  created_at: string
+}
+
+interface Owner {
+  id: number
+  name: string
+  email: string
+  email_verified_at: string | null
+  two_factor_confirmed_at: string | null
+  created_at: string
+  updated_at: string
+  organization_id: number
+  deleted_at: string | null
+}
+
+interface Repository {
+  id: number
+  user_id: number
+  name: string
+  view_count: number
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+  snippets: Snippet[]
+  owner: Owner
+  friend_permission: Permission | null
+  organization_permission: Permission | null
+  public_permission: Permission | null
 }
 
 interface FriendshipStats {
@@ -312,11 +361,12 @@ const RepositorySettingsDialog = ({
   repository,
   onSave,
   onDelete,
-}: { repository: any; onSave: (settings: any) => void; onDelete: () => void }) => {
+  onClose,
+}: { repository: any; onSave: (settings: any) => void; onDelete: () => void; onClose?: () => void }) => {
   const [settings, setSettings] = useState({
-    accessRole: repository.accessRole || "none",
-    friendPermission: repository.friendPermission || "read",
-    organizationPermission: repository.organizationPermission || "read",
+    friendPermission: repository.friendPermission || "none",
+    organizationPermission: repository.organizationPermission || "none",
+    publicPermission: repository.publicPermission || "none",
   })
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -338,7 +388,6 @@ const RepositorySettingsDialog = ({
           <div>
             <Label htmlFor="friends-permission">Friends</Label>
             <Select
-              id="friends-permission"
               value={settings.friendPermission}
               onValueChange={(value) =>
                 setSettings(prev => ({ ...prev, friendPermission: value }))
@@ -359,7 +408,6 @@ const RepositorySettingsDialog = ({
           <div>
             <Label htmlFor="orgs-permission">Organizations</Label>
             <Select
-              id="orgs-permission"
               value={settings.organizationPermission}
               onValueChange={(value) =>
                 setSettings(prev => ({ ...prev, organizationPermission: value }))
@@ -380,7 +428,6 @@ const RepositorySettingsDialog = ({
           <div>
             <Label htmlFor="public-permission">Public</Label>
             <Select
-              id="public-permission"
               value={settings.publicPermission}
               onValueChange={(value) =>
                 setSettings(prev => ({ ...prev, publicPermission: value }))
@@ -447,8 +494,16 @@ const RepositorySettingsDialog = ({
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline">Cancel</Button>
-            <Button onClick={() => onSave(settings)}>Save Settings</Button>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={async () => {
+              try {
+                await onSave(settings)
+                if (onClose) onClose()
+              } catch (error) {
+                // Error is already handled in onSave, just prevent dialog from closing
+                console.error("Settings save failed, keeping dialog open")
+              }
+            }}>Save Settings</Button>
           </div>
         </div>
       </DialogContent>
@@ -479,36 +534,39 @@ const RepositorySettingsDialog = ({
 }
 
 const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
+  const [open, setOpen] = useState(false)
   const [repoName, setRepoName] = useState("")
   const [settings, setSettings] = useState({
-    accessRole: "none",
-    friendPermission: "read",
-    organizationPermission: "read",
+    friend_permission: "none",
+    organization_permission: "none",
+    public_permission: "none"
   })
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!repoName.trim()) return
 
     const newRepo = {
-      id: Date.now(),
       name: repoName,
-      created_at: new Date().toISOString(),
-      organization: null,
-      permission: "owner",
-      owner: { id: 12345, name: "John Doe" }, // Current user
-      snippets: [],
-      accessRole: settings.accessRole,
-      friendPermission: settings.friendPermission,
-      organizationPermission: settings.organizationPermission,
+      friend_permission: settings.friend_permission,
+      organization_permission: settings.organization_permission,
+      public_permission: settings.public_permission,
     }
 
-    onSave(newRepo)
+    await onSave(newRepo)
     setRepoName("")
-    setSettings({ accessRole: "none", friendPermission: "read", organizationPermission: "read" })
+    setSettings({ friend_permission: "none", organization_permission: "none", public_permission: "none" })
+    setOpen(false) // Close the dialog after successful creation
   }
 
   return (
-    <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          New Repository
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
       <DialogHeader>
         <DialogTitle>Create New Repository</DialogTitle>
         <DialogDescription>Create a new repository and configure access permissions</DialogDescription>
@@ -533,10 +591,9 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
           <div>
             <Label htmlFor="friends-permission">Friends</Label>
             <Select
-              id="friends-permission"
-              value={settings.friendPermission}
+              value={settings.friend_permission}
               onValueChange={(value) =>
-                setSettings(prev => ({ ...prev, friendPermission: value }))
+                setSettings(prev => ({ ...prev, friend_permission: value }))
               }
             >
               <SelectTrigger>
@@ -554,10 +611,9 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
           <div>
             <Label htmlFor="orgs-permission">Organizations</Label>
             <Select
-              id="orgs-permission"
-              value={settings.organizationPermission}
+              value={settings.organization_permission}
               onValueChange={(value) =>
-                setSettings(prev => ({ ...prev, organizationPermission: value }))
+                setSettings(prev => ({ ...prev, organization_permission: value }))
               }
             >
               <SelectTrigger>
@@ -575,10 +631,9 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
           <div>
             <Label htmlFor="public-permission">Public</Label>
             <Select
-              id="public-permission"
-              value={settings.publicPermission}
+              value={settings.public_permission}
               onValueChange={(value) =>
-                setSettings(prev => ({ ...prev, publicPermission: value }))
+                setSettings(prev => ({ ...prev, public_permission: value }))
               }
             >
               <SelectTrigger>
@@ -591,53 +646,18 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
               </SelectContent>
             </Select>
           </div>
-      
-            {/* {(settings.accessRole === "friend" || settings.accessRole === "both") && (
-              <div>
-                <Label htmlFor="friend-permission">Friends Permission Level</Label>
-                <Select
-                  value={settings.friendPermission}
-                  onValueChange={(value) => setSettings((prev) => ({ ...prev, friendPermission: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="read">Read Only</SelectItem>
-                    <SelectItem value="write">Read & Write</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {(settings.accessRole === "organization" || settings.accessRole === "both") && (
-              <div>
-                <Label htmlFor="org-permission">Organization Permission Level</Label>
-                <Select
-                  value={settings.organizationPermission}
-                  onValueChange={(value) => setSettings((prev) => ({ ...prev, organizationPermission: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="read">Read Only</SelectItem>
-                    <SelectItem value="write">Read & Write</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )} */}
           </div>
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={!repoName.trim()}>
             Create Repository
           </Button>
         </div>
       </div>
     </DialogContent>
+    </Dialog>
   )
 }
 
@@ -645,14 +665,38 @@ const RepositoryCard = ({
   repository,
   onUpdateRepository,
   onDeleteRepository,
-}: { repository: any; onUpdateRepository: (repo: any) => void; onDeleteRepository: (repoId: number) => void }) => {
+  currentUser,
+  onReloadRepositories,
+}: { 
+  repository: Repository; 
+  onUpdateRepository: (repo: Repository) => void; 
+  onDeleteRepository: (repoId: number) => void;
+  currentUser: any;
+  onReloadRepositories?: () => void;
+}) => {
   const [showSnippets, setShowSnippets] = useState(false)
   const [editingSnippet, setEditingSnippet] = useState<number | null>(null)
   const [addingSnippet, setAddingSnippet] = useState(false)
   const [snippets, setSnippets] = useState(repository.snippets)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
 
-  const userCanEdit = canEdit(repository.permission)
-  const isOwner = repository.permission === "owner"
+  // 判斷當前用戶是否為擁有者
+  const isOwner = currentUser && repository.user_id === currentUser.id
+  
+  // 判斷權限類型
+  const getPermissionType = () => {
+    if (isOwner) return "owner"
+    if (repository.organization_permission?.writable === 1) return "write"
+    if (repository.organization_permission?.writable === 0) return "read"
+    if (repository.friend_permission?.writable === 1) return "write"
+    if (repository.friend_permission?.writable === 0) return "read"
+    if (repository.public_permission?.writable === 1) return "write"
+    if (repository.public_permission?.writable === 0) return "read"
+    return "read"
+  }
+
+  const permissionType = getPermissionType()
+  const userCanEdit = permissionType === "owner" || permissionType === "write"
 
   const handleSaveSnippet = (updatedSnippet: any) => {
     const updatedSnippets = snippets.map((s: any) => (s.id === updatedSnippet.id ? updatedSnippet : s))
@@ -674,18 +718,51 @@ const RepositoryCard = ({
     onUpdateRepository({ ...repository, snippets: updatedSnippets })
   }
 
-  const handleSaveSettings = (settings: any) => {
-    const updatedRepo = {
-      ...repository,
-      accessRole: settings.accessRole,
-      friendPermission: settings.friendPermission,
-      organizationPermission: settings.organizationPermission,
+  const handleSaveSettings = async (settings: any) => {
+    try {
+      console.log("Updating repository settings:", { repositoryId: repository.id, settings })
+      await repositoryAPI.updateRepository(
+        repository.id,
+        repository.name,
+        settings.friendPermission || "none",
+        settings.organizationPermission || "none", 
+        settings.publicPermission || "none"
+      )
+      
+      // Update the repository locally after successful API call
+      const updatedRepo = {
+        ...repository,
+        friendPermission: settings.friendPermission,
+        organizationPermission: settings.organizationPermission,
+        publicPermission: settings.publicPermission,
+      }
+      onUpdateRepository(updatedRepo)
+      
+      // Reload repositories from server to get fresh data
+      if (onReloadRepositories) {
+        onReloadRepositories()
+      }
+      
+      console.log("Repository settings updated successfully")
+    } catch (error: any) {
+      console.error("Failed to update repository settings:", error)
+      // TODO: Show error toast or alert to user
+      alert(`Failed to update repository settings: ${error.message}`)
+      throw error // Re-throw to prevent dialog from closing
     }
-    onUpdateRepository(updatedRepo)
   }
 
-  const handleDeleteRepository = () => {
-    onDeleteRepository(repository.id)
+  const handleDeleteRepository = async () => {
+    try {
+      console.log("Deleting repository:", repository.id)
+      await repositoryAPI.destroyRepository(repository.id)
+      onDeleteRepository(repository.id)
+      console.log("Repository deleted successfully")
+    } catch (error: any) {
+      console.error("Failed to delete repository:", error)
+      // TODO: Show error toast or alert to user
+      alert(`Failed to delete repository: ${error.message}`)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -697,31 +774,40 @@ const RepositoryCard = ({
   }
 
   const getAccessRoleDisplay = () => {
-    switch (repository.accessRole) {
-      case "friend":
-        return (
-          <Badge variant="outline" className="text-xs">
-            Friends ({repository.friendPermission || "read"})
-          </Badge>
-        )
-      case "organization":
-        return (
-          <Badge variant="outline" className="text-xs">
-            Organization ({repository.organizationPermission || "read"})
-          </Badge>
-        )
-      case "both":
-        return (
-          <Badge variant="outline" className="text-xs">
-            Friends & Org
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="secondary" className="text-xs">
-            Private
-          </Badge>
-        )
+    // 根據權限類型顯示訪問角色
+    if (repository.friend_permission && repository.organization_permission) {
+      return (
+        <Badge variant="outline" className="text-xs">
+          Friends & Org
+        </Badge>
+      )
+    } else if (repository.friend_permission) {
+      const permission = repository.friend_permission.writable === 1 ? "write" : "read"
+      return (
+        <Badge variant="outline" className="text-xs">
+          Friends ({permission})
+        </Badge>
+      )
+    } else if (repository.organization_permission) {
+      const permission = repository.organization_permission.writable === 1 ? "write" : "read"
+      return (
+        <Badge variant="outline" className="text-xs">
+          Organization ({permission})
+        </Badge>
+      )
+    } else if (repository.public_permission) {
+      const permission = repository.public_permission.writable === 1 ? "write" : "read"
+      return (
+        <Badge variant="outline" className="text-xs">
+          Public ({permission})
+        </Badge>
+      )
+    } else {
+      return (
+        <Badge variant="secondary" className="text-xs">
+          Private
+        </Badge>
+      )
     }
   }
 
@@ -733,7 +819,7 @@ const RepositoryCard = ({
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
                 <h3 className="font-semibold text-blue-600">{repository.name}</h3>
-                {getPermissionBadge(repository.permission)}
+                {getPermissionBadge(permissionType)}
                 {getAccessRoleDisplay()}
               </div>
               <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -741,16 +827,16 @@ const RepositoryCard = ({
                   <Calendar className="h-4 w-4 mr-1" />
                   {formatDate(repository.created_at)}
                 </span>
-                {repository.organization && (
+                {repository.owner?.organization_id && (
                   <span className="flex items-center">
                     <Building2 className="h-4 w-4 mr-1" />
-                    {repository.organization}
+                    Org ID: {repository.owner?.organization_id}
                   </span>
                 )}
-                <span className="flex items-center">
+                {/* <span className="flex items-center">
                   <Code2 className="h-4 w-4 mr-1" />
                   {snippets.length} snippets
-                </span>
+                </span> */}
               </div>
               <div className="flex items-center text-sm text-gray-500 mt-1">
                 <span>Owner: {repository.owner?.name || "Unknown"}</span>
@@ -762,7 +848,7 @@ const RepositoryCard = ({
                 {showSnippets ? "Hide" : "Show"} Snippets
               </Button>
               {isOwner && (
-                <Dialog>
+                <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Settings className="h-4 w-4 mr-1" />
@@ -773,6 +859,7 @@ const RepositoryCard = ({
                     repository={repository}
                     onSave={handleSaveSettings}
                     onDelete={handleDeleteRepository}
+                    onClose={() => setSettingsDialogOpen(false)}
                   />
                 </Dialog>
               )}
@@ -1311,6 +1398,45 @@ export default function Dashboard() {
     }
   }
 
+  const loadRepository = async () => {
+    try {
+      const response = await repositoryAPI.getRepository()
+      console.log("Loaded repositories:", response)
+      if (response.repositories) {
+        setRepositoriesOwnedByMe(response.repositories)
+      }
+    } catch (error: any) {
+      console.error("Failed to load repositories:", error)
+      setRepositoriesOwnedByMe([])
+    }
+  }
+
+  const loadRepositoryFromFriend = async () => {
+    try {
+      const response = await repositoryAPI.getRepositoryFromFriend()
+      console.log("Loaded friends' repositories:", response)
+      if (response.repositories) {
+        setRepositoriesOwnedByFriends(response.repositories)
+      }
+    } catch (error: any) {
+      console.error("Failed to load friends' repositories:", error)
+      setRepositoriesOwnedByFriends([])
+    }
+  }
+
+  const loadRepositoryFromOrganization = async () => {
+    try {
+      const response = await repositoryAPI.getRepositoryFromOrganization()
+      console.log("Loaded organization repositories:", response)
+      if (response.repositories) {
+        setRepositoriesOwnedByOrganization(response.repositories)
+      }
+    } catch (error: any) {
+      console.error("Failed to load organization repositories:", error)
+      setRepositoriesOwnedByOrganization([])
+    }
+  }
+
   const searchUsers = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([])
@@ -1458,14 +1584,11 @@ export default function Dashboard() {
       console.log("Current user data loaded:", user)
       setCurrentUser(user)
       // Update repositories with current user data
-      setRepositoriesOwnedByMe((prev) =>
-        prev.map((repo) => ({
-          ...repo,
-          owner: repo.owner?.id === 12345 ? user : repo.owner,
-        })),
-      )
       
       // Load friends when component mounts
+      loadRepository()
+      loadRepositoryFromFriend()
+      loadRepositoryFromOrganization()
       loadFriends()
       loadOrganization()
       loadInvitation()
@@ -1473,170 +1596,9 @@ export default function Dashboard() {
   }, [])
 
   // Repositories with embedded snippets and permission levels
-  const [repositoriesOwnedByMe, setRepositoriesOwnedByMe] = useState([
-    {
-      id: 1,
-      name: "awesome-project",
-      created_at: "2024-01-10T00:00:00Z",
-      organization: null,
-      permission: "owner",
-      owner: { id: 12345, name: "Loading...", email: "loading@example.com" },
-      accessRole: "friend",
-      friendPermission: "write",
-      organizationPermission: "read",
-      snippets: [
-        {
-          id: 1,
-          title: "React Hook for API calls",
-          description: "Custom hook for handling API requests with loading states",
-          content:
-            "const useApi = (url) => {\n  const [data, setData] = useState(null);\n  const [loading, setLoading] = useState(false);\n  // implementation\n}",
-          language: "JavaScript",
-          expires_at: "2024-12-31T23:59:59Z",
-          created_at: "2024-01-12T00:00:00Z",
-        },
-        {
-          id: 2,
-          title: "Component State Manager",
-          description: "Utility for managing complex component state",
-          content: "const useStateManager = (initialState) => {\n  // state management logic\n}",
-          language: "JavaScript",
-          expires_at: null,
-          created_at: "2024-01-14T00:00:00Z",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "personal-blog",
-      created_at: "2024-01-15T00:00:00Z",
-      organization: null,
-      permission: "owner",
-      owner: currentUser,
-      accessRole: "none",
-      friendPermission: "read",
-      organizationPermission: "read",
-      snippets: [
-        {
-          id: 3,
-          title: "Blog Post Template",
-          description: "Template for creating new blog posts",
-          content: "interface BlogPost {\n  title: string;\n  content: string;\n  publishedAt: Date;\n}",
-          language: "TypeScript",
-          expires_at: null,
-          created_at: "2024-01-16T00:00:00Z",
-        },
-      ],
-    },
-  ])
-
-  const [repositoriesOwnedByFriends, setRepositoriesOwnedByFriends] = useState([
-    {
-      id: 3,
-      name: "data-visualization",
-      created_at: "2024-01-08T00:00:00Z",
-      organization: null,
-      permission: "read",
-      owner: sampleFriends[0],
-      accessRole: "friend",
-      organizationPermission: "read",
-      friendPermission: "read",
-      snippets: [
-        {
-          id: 4,
-          title: "Chart Generator",
-          description: "Python script for generating interactive charts",
-          content:
-            "import matplotlib.pyplot as plt\nimport pandas as pd\n\ndef create_chart(data):\n    # chart creation logic",
-          language: "Python",
-          expires_at: null,
-          created_at: "2024-01-09T00:00:00Z",
-        },
-      ],
-    },
-    {
-      id: 4,
-      name: "mobile-app-utils",
-      created_at: "2024-01-12T00:00:00Z",
-      organization: null,
-      permission: "write",
-      owner: sampleFriends[1],
-      accessRole: "organization",
-      organizationPermission: "write",
-      friendPermission: "read",
-      snippets: [
-        {
-          id: 5,
-          title: "Network Helper",
-          description: "Swift utilities for network requests",
-          content:
-            "import Foundation\n\nclass NetworkHelper {\n    static func fetchData(from url: URL) {\n        // network logic\n    }\n}",
-          language: "Swift",
-          expires_at: "2024-06-30T23:59:59Z",
-          created_at: "2024-01-13T00:00:00Z",
-        },
-      ],
-    },
-  ])
-
-  const [repositoriesOwnedByOrganization, setRepositoriesOwnedByOrganization] = useState([
-    {
-      id: 5,
-      name: "company-website",
-      created_at: "2024-01-05T00:00:00Z",
-      organization: "TechCorp",
-      permission: "write",
-      owner: { id: 5, name: "TechCorp", email: "admin@techcorp.com" },
-      accessRole: "organization",
-      organizationPermission: "write",
-      friendPermission: "read",
-      snippets: [
-        {
-          id: 6,
-          title: "Header Component",
-          description: "Reusable header component for the website",
-          content:
-            'const Header = ({ title, navigation }) => {\n  return (\n    <header className="header">\n      <h1>{title}</h1>\n      <nav>{navigation}</nav>\n    </header>\n  );\n};',
-          language: "React",
-          expires_at: null,
-          created_at: "2024-01-06T00:00:00Z",
-        },
-        {
-          id: 7,
-          title: "API Integration",
-          description: "Service layer for API communications",
-          content:
-            "const apiService = {\n  baseURL: process.env.API_URL,\n  async get(endpoint) {\n    // GET request logic\n  }\n};",
-          language: "JavaScript",
-          expires_at: null,
-          created_at: "2024-01-07T00:00:00Z",
-        },
-      ],
-    },
-    {
-      id: 6,
-      name: "internal-tools",
-      created_at: "2024-01-03T00:00:00Z",
-      organization: "DevTeam",
-      permission: "read",
-      owner: { id: 6, name: "DevTeam", email: "team@devteam.com" },
-      accessRole: "none",
-      organizationPermission: "read",
-      friendPermission: "read",
-      snippets: [
-        {
-          id: 8,
-          title: "Database Migration",
-          description: "Go script for database migrations",
-          content:
-            'package main\n\nimport (\n    "database/sql"\n    "fmt"\n)\n\nfunc migrate() {\n    // migration logic\n}',
-          language: "Go",
-          expires_at: null,
-          created_at: "2024-01-04T00:00:00Z",
-        },
-      ],
-    },
-  ])
+  const [repositoriesOwnedByMe, setRepositoriesOwnedByMe] = useState<Repository[]>([])
+  const [repositoriesOwnedByFriends, setRepositoriesOwnedByFriends] = useState<Repository[]>([])
+  const [repositoriesOwnedByOrganization, setRepositoriesOwnedByOrganization] = useState<Repository[]>([])
 
   const handleCreateOrganization = async () => {
     try {
@@ -1691,8 +1653,33 @@ export default function Dashboard() {
     clearInvitationMessages()
   }
 
-  const handleCreateRepository = (newRepo: any) => {
-    setRepositoriesOwnedByMe((prev) => [...prev, newRepo])
+  const handleCreateRepository = async (newRepo: any) => {
+    try {
+      console.log("Creating repository with data:", newRepo)
+      const response = await repositoryAPI.createRepository(
+        newRepo.name,
+        newRepo.friend_permission,
+        newRepo.organization_permission,
+        newRepo.public_permission
+      )
+      console.log("Repository created:", response.repository)
+      loadRepository() // Reload repositories after creation
+      // Add the new repository to the UI
+      // if (response.repository) {
+      //   setRepositoriesOwnedByMe((prev) => [...prev, response.repository])
+      // }
+    } catch (error) {
+      console.error("Failed to create repository:", error)
+      // You might want to show an error message to the user here
+    }
+  }
+
+  const reloadAllRepositories = async () => {
+    await Promise.all([
+      loadRepository(),
+      loadRepositoryFromFriend(),
+      loadRepositoryFromOrganization()
+    ])
   }
 
   const handleDeleteRepository = (repoId: number, section: string) => {
@@ -1991,15 +1978,7 @@ export default function Dashboard() {
             <main className="flex-1 space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold">Repositories</h2>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Repository
-                    </Button>
-                  </DialogTrigger>
-                  <NewRepositoryDialog onSave={handleCreateRepository} />
-                </Dialog>
+                <NewRepositoryDialog onSave={handleCreateRepository} />
               </div>
 
               {/* Owned by Me Section */}
@@ -2013,8 +1992,10 @@ export default function Dashboard() {
                     <RepositoryCard
                       key={repo.id}
                       repository={repo}
+                      currentUser={currentUser}
                       onUpdateRepository={(updatedRepo) => updateRepositoryInSection(updatedRepo, "me")}
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "me")}
+                      onReloadRepositories={reloadAllRepositories}
                     />
                   ))}
                 </div>
@@ -2033,8 +2014,10 @@ export default function Dashboard() {
                     <RepositoryCard
                       key={repo.id}
                       repository={repo}
+                      currentUser={currentUser}
                       onUpdateRepository={(updatedRepo) => updateRepositoryInSection(updatedRepo, "friends")}
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "friends")}
+                      onReloadRepositories={reloadAllRepositories}
                     />
                   ))}
                 </div>
@@ -2053,8 +2036,10 @@ export default function Dashboard() {
                     <RepositoryCard
                       key={repo.id}
                       repository={repo}
+                      currentUser={currentUser}
                       onUpdateRepository={(updatedRepo) => updateRepositoryInSection(updatedRepo, "organization")}
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "organization")}
+                      onReloadRepositories={reloadAllRepositories}
                     />
                   ))}
                 </div>

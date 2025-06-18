@@ -1,5 +1,7 @@
 // Auth utility functions for API calls and token management
 
+import { get } from "http"
+import { projectUpdate } from "next/dist/build/swc/generated-native"
 import { send } from "process"
 
 const API_BASE_URL = 'http://10.10.30.246:8000/api'
@@ -434,4 +436,82 @@ export const invitationAPI = {
     }
     return data
   }
+}
+
+export const repositoryAPI = {
+  getRepository: async () => {
+    const response = await apiRequest('/repository', {
+      method: 'GET'
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get repository')
+    }
+    
+    return data
+  },
+  getRepositoryFromFriend: async () => {
+    const response = await apiRequest('/repository/friends', {
+      method: 'GET'
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get repository from friend')
+    }
+    
+    return data
+  },
+  getRepositoryFromOrganization: async () => {
+    const response = await apiRequest('/repository/organizations', {
+      method: 'GET'
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get repository from organization')
+    }
+    
+    return data
+  },
+  createRepository: async (name: string, friend_permission: string, organization_permission: string, public_permission: string) => {
+    const response = await apiRequest('/repository', {
+      method: 'POST',
+      body: JSON.stringify({ name, friend_permission, organization_permission, public_permission }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create repository')
+    }
+    
+    return data
+  },
+  destroyRepository: async (repository_id: number) => {
+    const response = await apiRequest(`/repository`, {
+      method: 'DELETE',
+      body: JSON.stringify({ repository_id }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to destroy repository')
+    }
+    
+    return data
+  },
+  updateRepository: async (repository_id: number, name: string, friend_permission: string, organization_permission: string, public_permission: string) => {
+    const response = await apiRequest(`/repository/update`, {
+      method: 'POST',
+      body: JSON.stringify({ repository_id, name, friend_permission, organization_permission, public_permission }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update repository')
+    }
+    
+    return data
+  },
 }
