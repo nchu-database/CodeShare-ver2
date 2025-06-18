@@ -402,6 +402,12 @@ const NewSnippetForm = ({ onSave, onCancel, languages }: { onSave: (snippet: any
   )
 }
 
+// Helper function to convert Permission object to permission string
+const getPermissionString = (permission: Permission | null) => {
+  if (!permission) return "none"
+  return permission.writable === 1 ? "write" : "read"
+}
+
 const RepositorySettingsDialog = ({
   repository,
   onSave,
@@ -409,9 +415,9 @@ const RepositorySettingsDialog = ({
   onClose,
 }: { repository: any; onSave: (settings: any) => void; onDelete: () => void; onClose?: () => void }) => {
   const [settings, setSettings] = useState({
-    friendPermission: repository.friendPermission || "none",
-    organizationPermission: repository.organizationPermission || "none",
-    publicPermission: repository.publicPermission || "none",
+    friendPermission: getPermissionString(repository.friend_permission),
+    organizationPermission: getPermissionString(repository.organization_permission),
+    publicPermission: getPermissionString(repository.public_permission),
   })
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
