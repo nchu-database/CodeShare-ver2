@@ -334,24 +334,55 @@ const RepositorySettingsDialog = ({
             <h4 className="font-medium">Access Control</h4>
             <div className="space-y-3">
               <div>
-                <Label htmlFor="access-role">Permission Role</Label>
-                <Select
-                  value={settings.accessRole}
-                  onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None (Private)</SelectItem>
-                    <SelectItem value="friend">Friends</SelectItem>
-                    <SelectItem value="organization">Organization</SelectItem>
-                    <SelectItem value="both">Friends & Organization</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Label htmlFor="Friend">Friend</Label>
+              <Select
+                value={settings.accessRole}
+                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None </SelectItem>
+                  <SelectItem value="read">Friends_read</SelectItem>
+                  <SelectItem value="read&write">Friend_write</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="Organization">Organization</Label>
+              <Select
+                value={settings.accessRole}
+                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="read">Organization_read</SelectItem>
+                  <SelectItem value="read&write">Organization_write</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="public">public</Label>
+              <Select
+                value={settings.accessRole}
+                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="read">public_read</SelectItem>
+                  <SelectItem value="read&write">public_write</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {(settings.accessRole === "friend" || settings.accessRole === "both") && (
+              {/*(settings.accessRole === "friend" || settings.accessRole === "both") && (
                 <div>
                   <Label htmlFor="friend-permission">Friends Permission Level</Label>
                   <Select
@@ -385,7 +416,7 @@ const RepositorySettingsDialog = ({
                     </SelectContent>
                   </Select>
                 </div>
-              )}
+              )*/}
             </div>
           </div>
 
@@ -481,7 +512,7 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
           <h4 className="font-medium">Access Control</h4>
           <div className="space-y-3">
             <div>
-              <Label htmlFor="access-role">Permission Role</Label>
+              <Label htmlFor="Friend">Friend</Label>
               <Select
                 value={settings.accessRole}
                 onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
@@ -490,15 +521,46 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None (Private)</SelectItem>
-                  <SelectItem value="friend">Friends</SelectItem>
-                  <SelectItem value="organization">Organization</SelectItem>
-                  <SelectItem value="both">Friends & Organization</SelectItem>
+                  <SelectItem value="none">None </SelectItem>
+                  <SelectItem value="read">Friends_read</SelectItem>
+                  <SelectItem value="read&write">Friend_write</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {(settings.accessRole === "friend" || settings.accessRole === "both") && (
+            <div>
+              <Label htmlFor="Organization">Organization</Label>
+              <Select
+                value={settings.accessRole}
+                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="read">Organization_read</SelectItem>
+                  <SelectItem value="read&write">Organization_write</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="public">public</Label>
+              <Select
+                value={settings.accessRole}
+                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="read">public_read</SelectItem>
+                  <SelectItem value="read&write">public_write</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+      
+            {/* {(settings.accessRole === "friend" || settings.accessRole === "both") && (
               <div>
                 <Label htmlFor="friend-permission">Friends Permission Level</Label>
                 <Select
@@ -532,7 +594,7 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
                   </SelectContent>
                 </Select>
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
