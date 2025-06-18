@@ -989,16 +989,16 @@ const RepositoryCard = ({
                   <Calendar className="h-4 w-4 mr-1" />
                   {formatDate(repository.created_at)}
                 </span>
-                {repository.owner?.organization_id && (
+                {/* {repository.owner?.organization_id && (
                   <span className="flex items-center">
                     <Building2 className="h-4 w-4 mr-1" />
                     Org ID: {repository.owner?.organization_id}
                   </span>
-                )}
-                {/* <span className="flex items-center">
+                )} */}
+                <span className="flex items-center">
                   <Code2 className="h-4 w-4 mr-1" />
                   {snippets.length} snippets
-                </span> */}
+                </span>
               </div>
               <div className="flex items-center text-sm text-gray-500 mt-1">
                 <span>Owner: {repository.owner?.name || "Unknown"}</span>
@@ -1242,7 +1242,8 @@ const FindFriendsTab = ({
                 <div className="flex items-center space-x-3">
                   <Avatar>
                     <AvatarFallback>
-                      {user.name.split(" ").map((n: string) => n[0]).join("")}
+                      {user.name[0].toUpperCase()}
+                      {/* {user.name.split(" ").map((n: string) => n[0]).join("")} */}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -1423,7 +1424,8 @@ const FindInvitationTab = ({
                 <div className="flex items-center space-x-3">
                   <Avatar>
                     <AvatarFallback>
-                      {user.name.split(" ").map((n: string) => n[0]).join("")}
+                      {/* {user.name.split(" ").map((n: string) => n[0]).join("")} */}
+                      {user.name[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -1920,7 +1922,7 @@ export default function Dashboard() {
         {/* Simplified Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold text-gray-900">DevHub</h1>
+            <h1 className="text-xl font-bold text-gray-900">LinkedCode</h1>
             <div className="flex items-center space-x-4">
               {/* Current User Info */}
               <div className="text-sm text-gray-600">
@@ -1983,6 +1985,7 @@ export default function Dashboard() {
                         <p className="text-xs text-gray-500">Established&nbsp;on&nbsp;{dayjs(currentUserOrganization.created_at).format('YYYY-MM-DD')}</p>
                       </div>
                       <Button onClick={handleLeaveOrganization} variant="outline" size="sm" className="w-full">
+                        <UserMinus className="h-4 w-4 mr-2" />
                         Leave
                       </Button>
                       <Dialog open={invitationModalOpen} onOpenChange={setInvitationModalOpen}>

@@ -147,7 +147,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>Join DevHub and start managing your code snippets</CardDescription>
+          <CardDescription>Join LinkedCode and start managing your code snippets</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (

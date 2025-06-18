@@ -81,7 +81,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Sign in to your CodeShare account</CardDescription>
+          <CardDescription>Sign in to your LinkedCode account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
