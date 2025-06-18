@@ -329,58 +329,75 @@ const RepositorySettingsDialog = ({
           <DialogDescription>Configure access permissions and settings for this repository</DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
-          {/* Access Role Selection */}
-          <div className="space-y-3">
-            <h4 className="font-medium">Access Control</h4>
-            <div className="space-y-3">
-              <div>
-              <Label htmlFor="Friend">Friend</Label>
-              <Select
-                value={settings.accessRole}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None </SelectItem>
-                  <SelectItem value="read">Friends_read</SelectItem>
-                  <SelectItem value="read&write">Friend_write</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="Organization">Organization</Label>
-              <Select
-                value={settings.accessRole}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="read">Organization_read</SelectItem>
-                  <SelectItem value="read&write">Organization_write</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="public">public</Label>
-              <Select
-                value={settings.accessRole}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="read">public_read</SelectItem>
-                  <SelectItem value="read&write">public_write</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+           {/* Access Role Selection */}
+        
+        <div className="space-y-3">
+        <h4 className="font-medium">Access Control</h4>
+        <div className="space-y-3">
+          {/* Friends Section */}
+          <div>
+            <Label htmlFor="friends-permission">Friends</Label>
+            <Select
+              id="friends-permission"
+              value={settings.friendPermission}
+              onValueChange={(value) =>
+                setSettings(prev => ({ ...prev, friendPermission: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="write">Write</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Organizations Section */}
+          <div>
+            <Label htmlFor="orgs-permission">Organizations</Label>
+            <Select
+              id="orgs-permission"
+              value={settings.organizationPermission}
+              onValueChange={(value) =>
+                setSettings(prev => ({ ...prev, organizationPermission: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="write">Write</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Public Section */}
+          <div>
+            <Label htmlFor="public-permission">Public</Label>
+            <Select
+              id="public-permission"
+              value={settings.publicPermission}
+              onValueChange={(value) =>
+                setSettings(prev => ({ ...prev, publicPermission: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="write">Write</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        
+     
 
               {/*(settings.accessRole === "friend" || settings.accessRole === "both") && (
                 <div>
@@ -508,57 +525,72 @@ const NewRepositoryDialog = ({ onSave }: { onSave: (repo: any) => void }) => {
         </div>
 
         {/* Access Role Selection */}
+        
         <div className="space-y-3">
-          <h4 className="font-medium">Access Control</h4>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="Friend">Friend</Label>
-              <Select
-                value={settings.accessRole}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None </SelectItem>
-                  <SelectItem value="read">Friends_read</SelectItem>
-                  <SelectItem value="read&write">Friend_write</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="Organization">Organization</Label>
-              <Select
-                value={settings.accessRole}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="read">Organization_read</SelectItem>
-                  <SelectItem value="read&write">Organization_write</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="public">public</Label>
-              <Select
-                value={settings.accessRole}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, accessRole: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="read">public_read</SelectItem>
-                  <SelectItem value="read&write">public_write</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <h4 className="font-medium">Access Control</h4>
+        <div className="space-y-3">
+          {/* Friends Section */}
+          <div>
+            <Label htmlFor="friends-permission">Friends</Label>
+            <Select
+              id="friends-permission"
+              value={settings.friendPermission}
+              onValueChange={(value) =>
+                setSettings(prev => ({ ...prev, friendPermission: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="write">Write</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Organizations Section */}
+          <div>
+            <Label htmlFor="orgs-permission">Organizations</Label>
+            <Select
+              id="orgs-permission"
+              value={settings.organizationPermission}
+              onValueChange={(value) =>
+                setSettings(prev => ({ ...prev, organizationPermission: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="write">Write</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Public Section */}
+          <div>
+            <Label htmlFor="public-permission">Public</Label>
+            <Select
+              id="public-permission"
+              value={settings.publicPermission}
+              onValueChange={(value) =>
+                setSettings(prev => ({ ...prev, publicPermission: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="read">Read</SelectItem>
+                <SelectItem value="write">Write</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
       
             {/* {(settings.accessRole === "friend" || settings.accessRole === "both") && (
               <div>
