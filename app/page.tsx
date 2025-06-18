@@ -2052,7 +2052,7 @@ export default function Dashboard() {
                                 <DialogTitle>Organization Invitations</DialogTitle>
                                 <DialogDescription>Pending organization invitations</DialogDescription>
                               </DialogHeader>
-                              <div className="space-y-3">
+                              <div className="space-y-3 overflow-y-auto max-h-96">
                                 {invitations.length === 0 ? (
                                   <p className="text-sm text-gray-500 text-center py-4">No pending invitations</p>
                                 ) : (
@@ -2121,8 +2121,8 @@ export default function Dashboard() {
                     </Dialog>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  {friends.slice(0, 3).map((friend) => (
+                <CardContent className="space-y-2 overflow-y-auto max-h-64">
+                  {friends.map((friend) => (
                     <div key={friend.id} className="flex items-center justify-between p-2 border rounded mb-1">
                       <div className="flex items-center space-x-2">
                         <Avatar className="h-6 w-6">
@@ -2146,11 +2146,11 @@ export default function Dashboard() {
                     </div>
                   ))}
                   
-                  {friends.length > 3 && (
+                  {/* {friends.length > 3 && (
                     <div className="text-center py-2">
                       <p className="text-xs text-gray-500">{friends.length - 3} more friends</p>
                     </div>
-                  )}
+                  )} */}
                   
                   {friends.length === 0 && (
                     <div className="text-center py-2">
