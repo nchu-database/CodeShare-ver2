@@ -50,7 +50,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
-import { friendshipAPI, organizationAPI } from "@/lib/auth"
+import { friendshipAPI, invitationAPI, organizationAPI } from "@/lib/auth"
 import { set } from "date-fns"
 import dayjs from 'dayjs';
 
@@ -69,11 +69,25 @@ interface Organization {
   deleted_at?: string,
 }
 
+interface Invitation {
+  user_id: number,
+  organization_id: number,
+  created_at: string,
+  organization: Organization
+}
+
 interface SearchUser {
   id: number
   name: string
   email: string
   is_friend?: boolean
+}
+
+interface InvitationSearchUser {
+  id: number
+  name: string
+  email: string
+  is_invited?: boolean
 }
 
 interface FriendshipStats {
@@ -935,6 +949,187 @@ const FindFriendsTab = ({
   )
 }
 
+const InvitationModalContent = ({
+  invitationError,
+  invitationSuccess,
+  invitationActionLoading,
+  invitationSearchQuery,
+  invitationSearchResults,
+  invitationSearchLoading,
+  hasInvitationSearched,
+  onInvitationSearchQueryChange,
+  onInvitationSearchSubmit,
+  onSendInvitation
+}: {
+  invitationError: string
+  invitationSuccess: string
+  invitationActionLoading: boolean
+  invitationSearchQuery: string
+  invitationSearchResults: InvitationSearchUser[]
+  invitationSearchLoading: boolean
+  hasInvitationSearched: boolean
+  onInvitationSearchQueryChange: (query: string) => void
+  onInvitationSearchSubmit: (e: React.FormEvent) => void
+  onSendInvitation: (userId: number) => void
+}) => {
+  return (
+    <DialogContent className="max-w-2xl max-h-[70vh] overflow-hidden flex flex-col">
+      <DialogHeader>
+        <DialogTitle>Invite Users to Organization</DialogTitle>
+        <DialogDescription>Search for users to invite to your organization</DialogDescription>
+      </DialogHeader>
+      
+      <div className="flex-1 overflow-hidden">
+        <FindInvitationTab 
+          invitationSearchQuery={invitationSearchQuery}
+          invitationSearchResults={invitationSearchResults}
+          invitationSearchLoading={invitationSearchLoading}
+          hasInvitationSearched={hasInvitationSearched}
+          invitationError={invitationError}
+          invitationSuccess={invitationSuccess}
+          invitationActionLoading={invitationActionLoading}
+          onInvitationSearchQueryChange={onInvitationSearchQueryChange}
+          onInvitationSearchSubmit={onInvitationSearchSubmit}
+          onSendInvitation={onSendInvitation}
+        />
+      </div>
+    </DialogContent>
+  )
+}
+
+const FindInvitationTab = ({
+  invitationSearchQuery,
+  invitationSearchResults,
+  invitationSearchLoading,
+  hasInvitationSearched,
+  invitationError,
+  invitationSuccess,
+  invitationActionLoading,
+  onInvitationSearchQueryChange,
+  onInvitationSearchSubmit,
+  onSendInvitation
+}: {
+  invitationSearchQuery: string
+  invitationSearchResults: InvitationSearchUser[]
+  invitationSearchLoading: boolean
+  hasInvitationSearched: boolean
+  invitationError: string
+  invitationSuccess: string
+  invitationActionLoading: boolean
+  onInvitationSearchQueryChange: (query: string) => void
+  onInvitationSearchSubmit: (e: React.FormEvent) => void
+  onSendInvitation: (userId: number) => void
+}) => {
+  return (
+    <div className="space-y-4">
+      {invitationError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{invitationError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {invitationSuccess && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{invitationSuccess}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="invitation-search" className="block text-sm font-medium mb-2">
+            Search Users
+          </label>
+          <div className="flex space-x-3 px-1">
+            <Input
+              id="invitation-search"
+              placeholder="Enter name or email..."
+              value={invitationSearchQuery}
+              onChange={(e) => onInvitationSearchQueryChange(e.target.value)}
+              className="flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <Button 
+              type="button"
+              onClick={(e) => onInvitationSearchSubmit(e)}
+              disabled={invitationSearchLoading || !invitationSearchQuery.trim()}
+              className="shrink-0"
+            >
+              {invitationSearchLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 max-h-96 overflow-y-auto">
+        {invitationSearchResults.map((user) => (
+          <Card key={user.id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarFallback>
+                      {user.name.split(" ").map((n: string) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {user.is_invited ? (
+                    <Badge variant="secondary">Already Invited</Badge>
+                  ) : (
+                    <Button
+                      onClick={() => onSendInvitation(user.id)}
+                      disabled={invitationActionLoading}
+                      size="sm"
+                    >
+                      {invitationActionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      Send Invite
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {hasInvitationSearched && invitationSearchResults.length === 0 && !invitationSearchLoading && (
+          <div className="text-center py-8 text-gray-500">
+            <Search className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <p>No users found</p>
+            <p className="text-sm">Try a different search term</p>
+          </div>
+        )}
+
+        {!hasInvitationSearched && (
+          <div className="text-center py-8 text-gray-500">
+            <Search className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <p>Start typing to search for users</p>
+            <p className="text-sm">Click the Search button to find users</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Sample data
 const sampleFriends = [
   { id: 23456, name: "Alice Smith", email: "alice@example.com", created_at: "2024-01-10T00:00:00Z" },
@@ -958,6 +1153,7 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [friends, setFriends] = useState<Friend[]>([])
   const [currentUserOrganization, setCurrentUserOrganization] = useState<Organization | null>(null)
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   
   // Friends functionality state
   const [friendsModalOpen, setFriendsModalOpen] = useState(false)
@@ -969,6 +1165,17 @@ export default function Dashboard() {
   const [actionLoading, setActionLoading] = useState(false)
   const [friendsError, setFriendsError] = useState("")
   const [friendsSuccess, setFriendsSuccess] = useState("")
+
+  // Invitation functionality state
+  const [invitationModalOpen, setInvitationModalOpen] = useState(false)
+  const [invitationSearchQuery, setInvitationSearchQuery] = useState("")
+  const [invitationSearchResults, setInvitationSearchResults] = useState<InvitationSearchUser[]>([])
+  const [hasInvitationSearched, setHasInvitationSearched] = useState(false)
+  const [invitationLoading, setInvitationLoading] = useState(false)
+  const [invitationSearchLoading, setInvitationSearchLoading] = useState(false)
+  const [invitationActionLoading, setInvitationActionLoading] = useState(false)
+  const [invitationError, setInvitationError] = useState("")
+  const [invitationSuccess, setInvitationSuccess] = useState("")
 
   // Friends functionality
   const loadFriends = async () => {
@@ -994,6 +1201,19 @@ export default function Dashboard() {
       }
     } catch (error: any) {
       setCurrentUserOrganization(null)
+    }
+  }
+
+  const loadInvitation = async () => {
+    try {
+      const response = await invitationAPI.getInvitation()
+      console.log("Loaded invitations:", response)
+      if (response.invitations) {
+        setInvitations(response.invitations)
+      }
+    } catch (error: any) {
+      console.error("Failed to load invitations:", error)
+      setInvitations([])
     }
   }
 
@@ -1078,6 +1298,65 @@ export default function Dashboard() {
     setHasSearched(false)
   }
 
+  // Invitation functionality
+  const searchUsersForInvitation = async () => {
+    if (!invitationSearchQuery.trim()) {
+      setInvitationSearchResults([])
+      setHasInvitationSearched(false)
+      return
+    }
+
+    setInvitationSearchLoading(true)
+    setInvitationError("")
+    setHasInvitationSearched(true)
+    try {
+      const response = await invitationAPI.searchUsers(invitationSearchQuery.trim())
+      if (response.users) {
+        setInvitationSearchResults(response.users)
+      }
+    } catch (error: any) {
+      setInvitationError(error.message || "Failed to search users")
+      setInvitationSearchResults([])
+    } finally {
+      setInvitationSearchLoading(false)
+    }
+  }
+
+  const handleInvitationSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (invitationSearchQuery.trim()) {
+      searchUsersForInvitation()
+    }
+  }
+
+  const sendInvitation = async (userId: number) => {
+    setInvitationActionLoading(true)
+    setInvitationError("")
+    setInvitationSuccess("")
+
+    try {
+      const response = await invitationAPI.sendInvitation(userId)
+      if (response.message) {
+        setInvitationSuccess(response.message || "Invitation sent successfully!")
+        // 重新搜尋以更新 is_invited 狀態
+        if (invitationSearchQuery.trim()) {
+          searchUsersForInvitation()
+        }
+      }
+    } catch (error: any) {
+      setInvitationError(error.message || "Failed to send invitation")
+    } finally {
+      setInvitationActionLoading(false)
+    }
+  }
+
+  const clearInvitationMessages = () => {
+    setInvitationError("")
+    setInvitationSuccess("")
+    setInvitationSearchResults([])
+    setHasInvitationSearched(false)
+  }
+
   useEffect(() => {
     const userData = localStorage.getItem("user")
     if (userData) {
@@ -1095,6 +1374,7 @@ export default function Dashboard() {
       // Load friends when component mounts
       loadFriends()
       loadOrganization()
+      loadInvitation()
     }
   }, [])
 
@@ -1286,12 +1566,35 @@ export default function Dashboard() {
     }
   }
 
+  const handleAcceptInvitation = async (organization_id: number) => {
+    try {
+      const response = await invitationAPI.acceptInvitation(organization_id)
+      console.log("Invitation accepted:", response.message)
+      // Reload organization data
+      await loadOrganization()
+      await loadInvitation()
+    } catch (error: any) {
+      console.error("Failed to accept invitation:", error.message)
+    }
+  }
+
+  const handleDeclineInvitation = async (organization_id: number) => {
+    try {
+      const response = await invitationAPI.declineInvitation(organization_id)
+      console.log("Invitation declined:", response.message)
+      // Reload invitations
+      await loadInvitation()
+    } catch (error: any) {
+      console.error("Failed to decline invitation:", error.message)
+    }
+  }
+
   const handleInviteToOrganization = () => {
-    if (!currentUser.organization_id) {
+    if (!currentUserOrganization) {
       setShowInviteError(true)
       return
     }
-    // Handle invitation logic here
+    clearInvitationMessages()
   }
 
   const handleCreateRepository = (newRepo: any) => {
@@ -1396,49 +1699,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </CardHeader>
-                {/* <CardContent className="pt-0 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="flex-1">
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Repository
-                        </Button>
-                      </DialogTrigger>
-                      <NewRepositoryDialog onSave={handleCreateRepository} />
-                    </Dialog>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="flex-1">
-                          <Building2 className="h-4 w-4 mr-2" />
-                          New Organization
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Create New Organization</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="org-name">Organization Name</Label>
-                            <Input
-                              id="org-name"
-                              value={newOrgName}
-                              onChange={(e) => setNewOrgName(e.target.value)}
-                              placeholder="Enter organization name"
-                            />
-                          </div>
-                          <Button onClick={handleCreateOrganization} className="w-full">
-                            Create Organization
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardContent> */}
               </Card>
 
               {/* Current Organization */}
@@ -1459,10 +1719,26 @@ export default function Dashboard() {
                       <Button onClick={handleLeaveOrganization} variant="outline" size="sm" className="w-full">
                         Leave
                       </Button>
-                      <Button variant="outline" size="sm" className="w-full" onClick={handleInviteToOrganization}>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Invite
-                      </Button>
+                      <Dialog open={invitationModalOpen} onOpenChange={setInvitationModalOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full" onClick={handleInviteToOrganization}>
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Invite
+                          </Button>
+                        </DialogTrigger>
+                        <InvitationModalContent
+                          invitationError={invitationError}
+                          invitationSuccess={invitationSuccess}
+                          invitationActionLoading={invitationActionLoading}
+                          invitationSearchQuery={invitationSearchQuery}
+                          invitationSearchResults={invitationSearchResults}
+                          invitationSearchLoading={invitationSearchLoading}
+                          hasInvitationSearched={hasInvitationSearched}
+                          onInvitationSearchQueryChange={setInvitationSearchQuery}
+                          onInvitationSearchSubmit={handleInvitationSearchSubmit}
+                          onSendInvitation={sendInvitation}
+                        />
+                      </Dialog>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1508,30 +1784,24 @@ export default function Dashboard() {
                                 <DialogDescription>Pending organization invitations</DialogDescription>
                               </DialogHeader>
                               <div className="space-y-3">
-                                {sampleOrgRequests.map((request) => (
-                                  <div
-                                    key={request.id}
-                                    className="flex items-center justify-between p-3 border rounded"
-                                  >
-                                    <div>
-                                      <p className="font-medium">{request.organization}</p>
-                                      <p className="text-sm text-gray-500">Invited by {request.requester}</p>
-                                      <p className="text-xs text-gray-400">
-                                        {new Date(request.created_at).toLocaleDateString("en-US", {
-                                          year: "numeric",
-                                          month: "short",
-                                          day: "numeric",
-                                        })}
-                                      </p>
+                                {invitations.length === 0 ? (
+                                  <p className="text-sm text-gray-500 text-center py-4">No pending invitations</p>
+                                ) : (
+                                  invitations.map((invitation) => (
+                                    <div key={invitation.user_id + "-" + invitation.organization_id} className="flex items-center justify-between p-3 border rounded">
+                                      <div>
+                                        <p className="font-medium">{invitation.organization.name}</p>
+                                        <p className="text-xs text-gray-400">
+                                          {dayjs(invitation.created_at).format('YYYY-MM-DD')}
+                                        </p>
+                                      </div>
+                                      <div className="flex space-x-2">
+                                        <Button onClick={() => handleAcceptInvitation(invitation.organization_id)} size="sm">Accept</Button>
+                                        <Button onClick={() => handleDeclineInvitation(invitation.organization_id)} size="sm" variant="outline">Decline</Button>
+                                      </div>
                                     </div>
-                                    <div className="flex space-x-2">
-                                      <Button size="sm">Accept</Button>
-                                      <Button size="sm" variant="outline">
-                                        Decline
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
+                                  ))
+                                )}
                               </div>
                             </DialogContent>
                           </Dialog>

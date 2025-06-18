@@ -33,7 +33,7 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch('http://10.10.30.246:8000/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

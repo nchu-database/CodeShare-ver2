@@ -1,6 +1,8 @@
 // Auth utility functions for API calls and token management
 
-const API_BASE_URL = 'http://localhost:8000/api'
+import { send } from "process"
+
+const API_BASE_URL = 'http://10.10.30.246:8000/api'
 
 // Get auth token from localStorage
 export const getAuthToken = (): string | null => {
@@ -365,6 +367,70 @@ export const organizationAPI = {
     const data = await response.json()
     if (!response.ok) {
       throw new Error(data.message || 'Failed to leave organization')
+    }
+    return data
+  },
+}
+
+export const invitationAPI = {
+  getInvitation: async () => {
+    const response = await apiRequest('/invitation', {
+      method: 'GET'
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get invitation')
+    }
+    return data
+  },
+  sendInvitation: async (id: number) => {
+    const response = await apiRequest('/invitation/invite', {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send invitation')
+    }
+    
+    return data
+  },
+  acceptInvitation: async (organizationId: number) => {
+    const response = await apiRequest('/invitation/accept', {
+      method: 'POST',
+      body: JSON.stringify({ organization_id: organizationId }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to accept invitation')
+    }
+    
+    return data
+  },
+  declineInvitation: async (organizationId: number) => {
+    const response = await apiRequest('/invitation/decline', {
+      method: 'POST',
+      body: JSON.stringify({ organization_id: organizationId }),
+    })
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to decline invitation')
+    }
+    
+    return data
+  },
+  searchUsers: async (query: string) => {
+    const response = await apiRequest('/invitation/search', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    })
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to search users for invitation')
     }
     return data
   }
