@@ -149,6 +149,12 @@ const getPermissionBadge = (permission: string) => {
   const permissionConfig = {
     owner: { label: "Owner", variant: "default" as const, color: "bg-green-500" },
     admin: { label: "Admin", variant: "secondary" as const, color: "bg-blue-500" },
+    organization_write: { label: "Write", variant: "outline" as const, color: "bg-blue-500" },
+    organization_read: { label: "Read", variant: "outline" as const, color: "bg-blue-300" },
+    friend_write: { label: "Write", variant: "outline" as const, color: "bg-purple-500" },
+    friend_read: { label: "Read", variant: "outline" as const, color: "bg-purple-300" },
+    public_write: { label: "Write", variant: "outline" as const, color: "bg-orange-500" },
+    public_read: { label: "Read", variant: "outline" as const, color: "bg-orange-300" },
     write: { label: "Write", variant: "outline" as const, color: "bg-yellow-500" },
     read: { label: "Read", variant: "outline" as const, color: "bg-gray-500" },
   }
@@ -163,7 +169,11 @@ const getPermissionBadge = (permission: string) => {
 }
 
 const canEdit = (permission: string) => {
-  return permission === "owner" || permission === "write"
+  return permission === "owner" || 
+         permission === "organization_write" || 
+         permission === "friend_write" || 
+         permission === "public_write" ||
+         permission === "write"
 }
 
 // Helper function to get language name by ID
@@ -719,6 +729,7 @@ const RepositoryCard = ({
   currentUser,
   onReloadRepositories,
   languages,
+  section,
 }: { 
   repository: Repository; 
   onUpdateRepository: (repo: Repository) => void; 
@@ -726,6 +737,7 @@ const RepositoryCard = ({
   currentUser: any;
   onReloadRepositories: () => void;
   languages: any[];
+  section?: "me" | "friends" | "organization";
 }) => {
   const [showSnippets, setShowSnippets] = useState(false)
   const [editingSnippet, setEditingSnippet] = useState<number | null>(null)
@@ -744,17 +756,34 @@ const RepositoryCard = ({
   // 判斷權限類型
   const getPermissionType = () => {
     if (isOwner) return "owner"
-    if (repository.organization_permission?.writable === 1) return "write"
-    if (repository.organization_permission?.writable === 0) return "read"
-    if (repository.friend_permission?.writable === 1) return "write"
-    if (repository.friend_permission?.writable === 0) return "read"
-    if (repository.public_permission?.writable === 1) return "write"
-    if (repository.public_permission?.writable === 0) return "read"
+    
+    // 根據所在區段顯示對應的權限類型
+    if (section === "friends" && repository.friend_permission) {
+      return repository.friend_permission.writable === 1 ? "friend_write" : "friend_read"
+    }
+    
+    if (section === "organization" && repository.organization_permission) {
+      return repository.organization_permission.writable === 1 ? "organization_write" : "organization_read"
+    }
+    
+    // 對於 "me" 區段或沒有指定區段的情況，按優先順序檢查
+    if (repository.organization_permission) {
+      return repository.organization_permission.writable === 1 ? "organization_write" : "organization_read"
+    }
+    if (repository.friend_permission) {
+      return repository.friend_permission.writable === 1 ? "friend_write" : "friend_read"
+    }
+    if (repository.public_permission) {
+      return repository.public_permission.writable === 1 ? "public_write" : "public_read"
+    }
     return "read"
   }
 
   const permissionType = getPermissionType()
-  const userCanEdit = permissionType === "owner" || permissionType === "write"
+  const userCanEdit = permissionType === "owner" || 
+                     permissionType === "organization_write" || 
+                     permissionType === "friend_write" || 
+                     permissionType === "public_write"
 
   const handleSaveSnippet = async (updatedSnippet: any) => {
     try {
@@ -953,7 +982,7 @@ const RepositoryCard = ({
               <div className="flex items-center space-x-2 mb-2">
                 <h3 className="font-semibold text-blue-600">{repository.name}</h3>
                 {getPermissionBadge(permissionType)}
-                {getAccessRoleDisplay()}
+                {section === "me" ? getAccessRoleDisplay() : null}
               </div>
               <div className="flex items-center space-x-4 text-sm text-gray-500">
                 <span className="flex items-center">
@@ -2153,6 +2182,7 @@ export default function Dashboard() {
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "me")}
                       onReloadRepositories={reloadAllRepositories}
                       languages={languages}
+                      section="me"
                     />
                   ))}
                 </div>
@@ -2176,6 +2206,7 @@ export default function Dashboard() {
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "friends")}
                       onReloadRepositories={reloadAllRepositories}
                       languages={languages}
+                      section="friends"
                     />
                   ))}
                 </div>
@@ -2199,6 +2230,7 @@ export default function Dashboard() {
                       onDeleteRepository={(repoId) => handleDeleteRepository(repoId, "organization")}
                       onReloadRepositories={reloadAllRepositories}
                       languages={languages}
+                      section="organization"
                     />
                   ))}
                 </div>
